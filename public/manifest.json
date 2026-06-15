@@ -1,0 +1,40 @@
+{
+  "name": "Lekhsetu — Bridge to Knowledge",
+  "short_name": "Lekhsetu",
+  "description": "A global platform for real stories, knowledge, and career insights. Write in your language. Read for free.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0907",
+  "theme_color": "#F5A623",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["news", "education", "books"],
+  "lang": "en",
+  "shortcuts": [
+    {
+      "name": "Write a story",
+      "short_name": "Write",
+      "url": "/write",
+      "description": "Start writing a new story"
+    },
+    {
+      "name": "Explore stories",
+      "short_name": "Explore",
+      "url": "/explore",
+      "description": "Browse all stories"
+    }
+  ]
+}

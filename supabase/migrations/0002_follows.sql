@@ -1,0 +1,4 @@
+-- ============================================================
+-- Lekhsetu – Follows migration
+-- Pending: schema for the "follow other writers" feature
+-- ============================================================

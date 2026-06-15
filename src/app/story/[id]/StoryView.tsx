@@ -335,16 +335,9 @@ export default function StoryView({ id }: { id: string }) {
           </div>
         )}
 
-        <h1 className="font-display text-3xl md:text-5xl font-black text-ink leading-tight mb-5">
+        <h1 className="font-display text-3xl md:text-5xl font-black text-ink leading-tight mb-8">
           {translation?.title ?? story.title}
         </h1>
-
-        {(translation ? translation.excerpt : story.excerpt) && (
-          <p className="text-lg text-muted leading-relaxed mb-8 border-l-2 pl-4 italic"
-            style={{ borderColor: cat?.color ?? "#F5A623" }}>
-            {translation ? translation.excerpt : story.excerpt}
-          </p>
-        )}
       </div>
 
       {/* Story body */}

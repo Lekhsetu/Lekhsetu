@@ -18,7 +18,7 @@ export type AdminReport = {
   reporter_id: string;
   reason: string;
   created_at: string;
-  stories?: Pick<Story, "id" | "title"> | null;
+  stories?: Pick<Story, "id" | "title" | "translation_group_id"> | null;
   profiles?: Pick<Profile, "username" | "display_name"> | null;
 };
 
@@ -170,7 +170,7 @@ export async function fetchAllReports(): Promise<AdminReport[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("story_reports")
-    .select("*, stories(id, title), profiles(username, display_name)")
+    .select("*, stories(id, title, translation_group_id), profiles(username, display_name)")
     .order("created_at", { ascending: false });
   if (error) console.error("Admin Fetch Reports Error:", error);
   return (data ?? []) as AdminReport[];

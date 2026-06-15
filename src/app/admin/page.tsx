@@ -163,7 +163,7 @@ function ReportsTab({ reports, onChange }: { reports: AdminReport[]; onChange: (
     if (!r.stories) return;
     if (!window.confirm(`Delete the reported story "${r.stories.title}"? This cannot be undone.`)) return;
     setBusy(r.id);
-    await adminDeleteStory(r.stories.id);
+    await adminDeleteStory(r.stories.id, r.stories.translation_group_id);
     await adminDismissReport(r.id);
     setBusy(null);
     onChange();

@@ -460,8 +460,8 @@ function WritePageInner() {
 
       if (translationGroupId && extraLanguages.length > 0) {
         setExtraLangStatus(Object.fromEntries(extraLanguages.map(l => [l, "pending" as const])));
-        for (const targetLanguage of extraLanguages) {
-          (async () => {
+        (async () => {
+          for (const targetLanguage of extraLanguages) {
             try {
               const res = await fetch("/api/ai", {
                 method: "POST",
@@ -486,8 +486,8 @@ function WritePageInner() {
             } catch {
               setExtraLangStatus(prev => ({ ...prev, [targetLanguage]: "error" }));
             }
-          })();
-        }
+          }
+        })();
       }
     }
     setPublishing(false);

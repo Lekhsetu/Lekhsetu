@@ -186,18 +186,30 @@ export async function POST(req: NextRequest) {
       `Respond with ONLY valid JSON in this exact shape, with all fields translated into ${languageName(targetLanguage)} ` +
       `(no markdown code fences, no extra commentary): {"title": "...", "excerpt": "...", "content": "..."}`;
 
-    const gen = await generate(prompt);
-    if (gen.error) return NextResponse.json({ error: gen.error }, { status: gen.status });
-
-    try {
-      const cleaned = gen.result!.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
-      const parsed = JSON.parse(cleaned);
-      if (typeof parsed.title !== "string" || typeof parsed.content !== "string") throw new Error("bad shape");
-      if (typeof parsed.excerpt !== "string") parsed.excerpt = "";
-      return NextResponse.json({ result: parsed });
-    } catch {
-      return NextResponse.json({ error: "Failed to parse translated story" }, { status: 502 });
+    let configured = false;
+    for (const provider of PROVIDERS) {
+      let raw: string | null;
+      try {
+        raw = await provider.call(prompt);
+      } catch {
+        configured = true;
+        continue;
+      }
+      if (raw === null) continue;
+      configured = true;
+      try {
+        const cleaned = raw.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
+        const parsed = JSON.parse(cleaned);
+        if (typeof parsed.title !== "string" || typeof parsed.content !== "string") throw new Error("bad shape");
+        if (typeof parsed.excerpt !== "string") parsed.excerpt = "";
+        return NextResponse.json({ result: parsed });
+      } catch {
+        // This provider returned bad JSON — try the next one
+        continue;
+      }
     }
+    if (!configured) return NextResponse.json({ error: "AI not configured." }, { status: 503 });
+    return NextResponse.json({ error: "All providers failed to return valid JSON for this translation." }, { status: 502 });
   }
 
   const promptFn = PROMPTS[action];

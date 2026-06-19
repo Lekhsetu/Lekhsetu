@@ -105,8 +105,9 @@ function WritePageInner() {
     if (typeof window === "undefined") return 0;
     try {
       const stored = JSON.parse(localStorage.getItem("lekh_ai_usage") ?? "{}");
-      const today = new Date().toDateString();
-      return stored.date === today ? (stored.count ?? 0) : 0;
+      const now = new Date();
+      const weekKey = `${now.getFullYear()}-W${Math.ceil((now.getDate() - now.getDay() + 1) / 7)}`;
+      return stored.week === weekKey ? (stored.count ?? 0) : 0;
     } catch { return 0; }
   });
   const [publishedId, setPublishedId] = useState<string | null>(null);
@@ -384,9 +385,10 @@ function WritePageInner() {
   const AI_DAILY_LIMIT = 5;
 
   const incrementAiUsage = () => {
-    const today = new Date().toDateString();
+    const now = new Date();
+    const weekKey = `${now.getFullYear()}-W${Math.ceil((now.getDate() - now.getDay() + 1) / 7)}`;
     const next = aiUsedToday + 1;
-    localStorage.setItem("lekh_ai_usage", JSON.stringify({ date: today, count: next }));
+    localStorage.setItem("lekh_ai_usage", JSON.stringify({ week: weekKey, count: next }));
     setAiUsedToday(next);
     return next;
   };
@@ -881,7 +883,7 @@ function WritePageInner() {
                 <div style={{ fontSize: 40, marginBottom: 16 }}>✋</div>
                 <p className="font-semibold text-sm mb-2" style={{ color: "#F0EAD6" }}>Daily AI limit reached</p>
                 <p className="text-xs leading-relaxed" style={{ color: "#6B6354" }}>
-                  You have used all {AI_DAILY_LIMIT} free AI assists for today. Your limit resets at midnight.
+                  You have used all {AI_DAILY_LIMIT} free AI assists for this week. Your limit resets every Monday.
                 </p>
               </div>
             ) : (

@@ -369,16 +369,43 @@ function WritePageInner() {
   const wc = body.split(/\s+/).filter(Boolean).length;
   const rt = Math.max(1, Math.ceil(wc / 200));
 
+  const commitTags = async (raw: string) => {
+    const candidates = raw
+      .split(/[,\s#]+/)
+      .map(t => t.trim().toLowerCase().replace(/[,#]/g, ""))
+      .filter(t => t.length > 0);
+
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      setTags(prev => {
+        if (prev.includes(candidate) || prev.length >= 5) return prev;
+        return [...prev, candidate];
+      });
+    }
+    setTagInput("");
+  };
+
   const addTag = async (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      let t = tagInput.trim().toLowerCase().replace(/[,#]/g, "");
-      if (!t || tags.includes(t) || tags.length >= 5) return;
-      setTagInput("");
-      if (language !== "en" && /[a-zA-Z]/.test(t)) {
-        t = (await translateSegment(t)).toLowerCase();
-      }
-      if (t && !tags.includes(t)) setTags(prev => [...prev, t]);
+      await commitTags(tagInput);
+    }
+  };
+
+  const handleTagPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData("text");
+    if (pasted.includes(",") || pasted.includes(" ") || pasted.includes("#")) {
+      e.preventDefault();
+      commitTags(pasted);
+    }
+  };
+
+  const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/#/g, "");
+    if (val.includes(",")) {
+      commitTags(val);
+    } else {
+      setTagInput(val);
     }
   };
 
@@ -804,10 +831,14 @@ function WritePageInner() {
                   <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
                     style={{ border: "1px solid rgba(120,90,50,0.2)", color: "#9C8B6F" }}>
                     #
-                    <input value={tagInput} onChange={e => setTagInput(e.target.value.replace(/#/g, ""))} onKeyDown={addTag}
-                      placeholder={tags.length === 0 ? "Add tags (press Enter)…" : "tag"}
+                    <input
+                      value={tagInput}
+                      onChange={handleTagChange}
+                      onKeyDown={addTag}
+                      onPaste={handleTagPaste}
+                      placeholder={tags.length === 0 ? "tag1, tag2, tag3…" : "add more"}
                       className="paper-input bg-transparent focus:outline-none"
-                      style={{ color: "#7A6A50", minWidth: 80 }}
+                      style={{ color: "#7A6A50", minWidth: 90 }}
                     />
                   </span>
                 )}

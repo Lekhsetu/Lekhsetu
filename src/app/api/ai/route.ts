@@ -5,11 +5,36 @@ function languageName(code: string): string {
   return LANGUAGES.find(l => l.code === code)?.label ?? "English";
 }
 
+// Walk the raw string character by character and escape any literal control
+// characters that appear inside JSON string values. LLMs sometimes output raw
+// newlines/tabs inside strings instead of the \n/\t escape sequences.
+function sanitizeJsonControlChars(raw: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (escaped) { out += c; escaped = false; continue; }
+    if (c === "\\" && inString) { out += c; escaped = true; continue; }
+    if (c === '"') { inString = !inString; out += c; continue; }
+    if (inString) {
+      if (c === "\n") { out += "\\n"; continue; }
+      if (c === "\r") { out += "\\r"; continue; }
+      if (c === "\t") { out += "\\t"; continue; }
+      if (c.charCodeAt(0) < 32) continue; // drop other control chars
+    }
+    out += c;
+  }
+  // Some models output \uXXX (3-digit) instead of the required \uXXXX (4-digit).
+  // Pad the hex part to 4 digits so JSON.parse doesn't throw.
+  return out.replace(/\\u([0-9a-fA-F]{1,3})(?![0-9a-fA-F])/g, (_, h) => `\\u${h.padStart(4, "0")}`);
+}
+
 // ─── Basic per-IP rate limiting ──────────────────────────────────────────────
 // In-memory only — resets on redeploy/cold start and isn't shared across
 // serverless instances, but stops a single client from hammering the free
 // AI providers and burning through quota.
-const RATE_LIMIT = 20; // requests
+const RATE_LIMIT = 60; // requests — raised to accommodate multi-language publish batches
 const RATE_WINDOW_MS = 10 * 60 * 1000; // per 10 minutes
 const requestLog = new Map<string, number[]>();
 
@@ -80,6 +105,114 @@ async function callGroq(prompt: string): Promise<string | null> {
   return json.choices?.[0]?.message?.content ?? null;
 }
 
+// Fast 8B model for read-time translation — low latency, good quality for Indian languages.
+async function callGroqFast(prompt: string): Promise<string | null> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return null;
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: "You are a translation engine. Output only valid JSON. No explanation, no markdown." },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 3000,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("GroqFast error", res.status, text);
+    throw new Error(`GroqFast ${res.status}`);
+  }
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content ?? null;
+}
+
+// Cerebras — dedicated AI silicon, very fast 70B inference, OpenAI-compatible API.
+async function callCerebras(prompt: string): Promise<string | null> {
+  const key = process.env.CEREBRAS_API_KEY;
+  if (!key) return null;
+
+  const res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: "llama3.1-8b",
+      messages: [
+        { role: "system", content: "You are a translation engine. Output only valid JSON. No explanation, no markdown." },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 1500,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("Cerebras error", res.status, text);
+    throw new Error(`Cerebras ${res.status}`);
+  }
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content ?? null;
+}
+
+// Sarvam AI language codes — maps our 2-letter codes to Sarvam's BCP-47 format.
+const SARVAM_LANG: Record<string, string> = {
+  hi: "hi-IN", mr: "mr-IN", ta: "ta-IN", te: "te-IN",
+  kn: "kn-IN", ml: "ml-IN", gu: "gu-IN", bn: "bn-IN",
+  pa: "pa-IN", or: "or-IN", en: "en-IN",
+};
+
+// Translates a single text segment via Sarvam Mayura. Returns null if not configured
+// or if the language pair isn't supported. Chunks long content automatically.
+async function sarvamTranslateSegment(text: string, src: string, tgt: string): Promise<string | null> {
+  const key = process.env.SARVAM_API_KEY;
+  if (!key) return null;
+  const srcCode = SARVAM_LANG[src];
+  const tgtCode = SARVAM_LANG[tgt];
+  if (!srcCode || !tgtCode) return null; // unsupported language pair
+
+  // Sarvam handles up to ~1000 chars reliably — split on paragraph boundaries.
+  const CHUNK = 900;
+  const chunks: string[] = [];
+  let remaining = text;
+  while (remaining.length > CHUNK) {
+    const breakAt = remaining.lastIndexOf("\n\n", CHUNK);
+    const cut = breakAt > 200 ? breakAt : remaining.lastIndexOf(". ", CHUNK);
+    const pos = cut > 200 ? cut + 1 : CHUNK;
+    chunks.push(remaining.slice(0, pos).trim());
+    remaining = remaining.slice(pos).trim();
+  }
+  if (remaining) chunks.push(remaining);
+
+  const translated: string[] = [];
+  for (const chunk of chunks) {
+    const res = await fetch("https://api.sarvam.ai/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "api-subscription-key": key },
+      body: JSON.stringify({
+        input: chunk,
+        source_language_code: srcCode,
+        target_language_code: tgtCode,
+        speaker_gender: "Male",
+        mode: "modern-colloquial",
+        model: "mayura:v1",
+        enable_preprocessing: false,
+      }),
+    });
+    if (!res.ok) throw new Error(`Sarvam error ${res.status}: ${await res.text()}`);
+    const json = await res.json();
+    if (!json.translated_text) throw new Error("Sarvam: empty response");
+    translated.push(json.translated_text);
+  }
+  return translated.join("\n\n");
+}
+
 async function callOpenRouter(prompt: string): Promise<string | null> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) return null;
@@ -100,12 +233,33 @@ async function callOpenRouter(prompt: string): Promise<string | null> {
   return json.choices?.[0]?.message?.content ?? null;
 }
 
+// Second OpenRouter call using a different free model — avoids hitting the same upstream rate limit.
+async function callOpenRouterAlt(prompt: string): Promise<string | null> {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) return null;
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: "mistralai/mistral-7b-instruct:free",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2048,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`OpenRouterAlt error ${res.status}: ${await res.text()}`);
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content ?? null;
+}
+
 async function callGemini(prompt: string): Promise<string | null> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -123,7 +277,9 @@ async function callGemini(prompt: string): Promise<string | null> {
 
 const PROVIDERS = [
   { name: "Groq", call: callGroq },
+  { name: "Cerebras", call: callCerebras },
   { name: "OpenRouter", call: callOpenRouter },
+  { name: "OpenRouterAlt", call: callOpenRouterAlt },
   { name: "Gemini", call: callGemini },
 ];
 
@@ -163,14 +319,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests. Please wait a bit and try again." }, { status: 429 });
   }
 
-  let body: { action: string; content: string; title: string; excerpt?: string; language: string; targetLanguage?: string };
+  let body: { action: string; content: string; title: string; excerpt?: string; language: string; targetLanguage?: string; memoryContext?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const { action, content, title = "", excerpt = "", language = "en", targetLanguage } = body;
+  const { action, content, title = "", excerpt = "", language = "en", targetLanguage, memoryContext } = body;
   if (!content?.trim()) {
     return NextResponse.json({ error: "Invalid action or empty content" }, { status: 400 });
   }
@@ -179,37 +335,70 @@ export async function POST(req: NextRequest) {
     if (!targetLanguage) {
       return NextResponse.json({ error: "Missing targetLanguage" }, { status: 400 });
     }
+    const tgtLang = languageName(targetLanguage);
+    const srcLang = languageName(language);
+    const trimmedContent = content.slice(0, 4000);
     const prompt =
-      `Translate the following story from ${languageName(language)} to ${languageName(targetLanguage)}. ` +
-      `Keep the emotional tone, meaning, and paragraph breaks intact.\n\n` +
-      `Title: ${title}\n\nExcerpt: ${excerpt}\n\nStory:\n${content.slice(0, 6000)}\n\n` +
-      `Respond with ONLY valid JSON in this exact shape, with all fields translated into ${languageName(targetLanguage)} ` +
-      `(no markdown code fences, no extra commentary): {"title": "...", "excerpt": "...", "content": "..."}`;
+      `Translate the following story from ${srcLang} to ${tgtLang}.\n` +
+      `Preserve the emotional tone, paragraph breaks, and meaning.\n` +
+      (memoryContext ? `\n${memoryContext}\n` : "") +
+      `Respond with ONLY this JSON structure (no markdown, no extra text):\n` +
+      `{"title":"<translated title>","excerpt":"<translated excerpt>","content":"<translated content>"}\n\n` +
+      `Title: ${title}\nExcerpt: ${excerpt}\nContent:\n${trimmedContent}`;
+
+    // Try Sarvam first for Indian language pairs — dedicated model, best quality.
+    try {
+      const [tTitle, tExcerpt, tContent] = await Promise.all([
+        sarvamTranslateSegment(title, language, targetLanguage),
+        excerpt ? sarvamTranslateSegment(excerpt, language, targetLanguage) : Promise.resolve(""),
+        sarvamTranslateSegment(trimmedContent, language, targetLanguage),
+      ]);
+      if (tTitle && tContent) {
+        return NextResponse.json({ result: { title: tTitle, excerpt: tExcerpt ?? "", content: tContent } });
+      }
+    } catch (err) {
+      console.error("[translate_to] Sarvam threw:", err);
+    }
+
+    const translationProviders = [
+      { name: "GroqFast", call: callGroqFast },
+      { name: "Cerebras", call: callCerebras },
+      { name: "Groq", call: callGroq },
+      { name: "OpenRouter", call: callOpenRouter },
+      { name: "OpenRouterAlt", call: callOpenRouterAlt },
+      { name: "Gemini", call: callGemini },
+    ];
 
     let configured = false;
-    for (const provider of PROVIDERS) {
+    for (const provider of translationProviders) {
       let raw: string | null;
       try {
         raw = await provider.call(prompt);
-      } catch {
+      } catch (err) {
         configured = true;
+        console.error(`[translate_to] ${provider.name} threw:`, err);
         continue;
       }
       if (raw === null) continue;
       configured = true;
       try {
-        const cleaned = raw.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
+        // Strip markdown fences, extract the first {...} block, then sanitize
+        // any literal control characters the model left unescaped inside strings.
+        let cleaned = raw.trim().replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (jsonMatch) cleaned = jsonMatch[0];
+        cleaned = sanitizeJsonControlChars(cleaned);
         const parsed = JSON.parse(cleaned);
         if (typeof parsed.title !== "string" || typeof parsed.content !== "string") throw new Error("bad shape");
         if (typeof parsed.excerpt !== "string") parsed.excerpt = "";
         return NextResponse.json({ result: parsed });
-      } catch {
-        // This provider returned bad JSON — try the next one
+      } catch (err) {
+        console.error(`[translate_to] ${provider.name} bad JSON:`, err, "raw:", raw?.slice(0, 200));
         continue;
       }
     }
     if (!configured) return NextResponse.json({ error: "AI not configured." }, { status: 503 });
-    return NextResponse.json({ error: "All providers failed to return valid JSON for this translation." }, { status: 502 });
+    return NextResponse.json({ error: "Translation failed — all providers unavailable." }, { status: 502 });
   }
 
   const promptFn = PROMPTS[action];

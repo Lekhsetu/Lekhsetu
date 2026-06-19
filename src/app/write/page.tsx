@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { publishStory, updateStory, fetchStoryById } from "@/services/stories";
+import { getCachedTranslation } from "@/services/translationCache";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
 import { LANGUAGES } from "@/constants";
@@ -405,6 +406,19 @@ function WritePageInner() {
     setAiLoading(true);
     setAiResult("");
     setAiOpen(true);
+
+    // For translate action on an existing story — check cache first.
+    // Target is Hindi when source is English, English otherwise.
+    if (action === "translate" && editId) {
+      const targetLang = language === "en" ? "hi" : "en";
+      const cached = await getCachedTranslation(editId, targetLang);
+      if (cached) {
+        setAiResult(cached.content);
+        setAiLoading(false);
+        return;
+      }
+    }
+
     incrementAiUsage();
     try {
       const res = await fetch("/api/ai", {

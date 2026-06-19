@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useReadProgress } from "@/hooks/useReadProgress";
 import { fetchStoryById, fetchRelatedStories, incrementStoryView, deleteStory, fetchTranslationSiblings } from "@/services/stories";
+import { getCachedTranslation, saveCachedTranslation, saveTranslationMemory } from "@/services/translationCache";
 import { getPreferredLanguage } from "@/utils/geo";
 import { fetchClapTotal, getUserClapCount, reportStory } from "@/services/reactions";
 import { fetchComments, addComment, deleteComment } from "@/services/comments";
@@ -69,6 +70,7 @@ export default function StoryView({ id }: { id: string }) {
   const [siblings, setSiblings] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [translation, setTranslation] = useState<{ language: string } & TranslatedContent | null>(null);
+  const [translating, setTranslating] = useState<string | null>(null);
   const readProgress = useReadProgress();
 
   // Claps
@@ -123,33 +125,43 @@ export default function StoryView({ id }: { id: string }) {
       setComments(c);
       setCommentsLoading(false);
 
-      // No published version in the reader's regional language — translate
-      // the story on the fly so it shows in their language automatically.
+      // No published version in the reader's regional language — serve from
+      // cache if available, otherwise translate via AI and cache the result.
       if (preferred && preferred !== data.language) {
-        try {
-          const res = await fetch("/api/ai", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "translate_to",
-              title: data.title,
-              excerpt: data.excerpt ?? "",
-              content: data.content,
-              language: data.language,
-              targetLanguage: preferred,
-            }),
-          });
-          const json = await res.json();
-          if (res.ok && !json.error) {
-            setTranslation({
-              language: preferred,
-              title: json.result.title,
-              excerpt: json.result.excerpt ?? "",
-              content: json.result.content,
+        const cached = await getCachedTranslation(id, preferred);
+        if (cached) {
+          setTranslation({ language: preferred, ...cached });
+        } else {
+          setTranslating(preferred);
+          try {
+            const res = await fetch("/api/ai", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "translate_to",
+                title: data.title,
+                excerpt: data.excerpt ?? "",
+                content: data.content,
+                language: data.language,
+                targetLanguage: preferred,
+              }),
             });
+            const json = await res.json();
+            if (res.ok && !json.error) {
+              const result = {
+                title: json.result.title,
+                excerpt: json.result.excerpt ?? "",
+                content: json.result.content,
+              };
+              setTranslation({ language: preferred, ...result });
+              saveCachedTranslation(id, preferred, result);
+              saveTranslationMemory(data.language, preferred, data.content, result.content);
+            }
+          } catch {
+            // silently keep the original language on translation failure
+          } finally {
+            setTranslating(null);
           }
-        } catch {
-          // silently keep the original language on translation failure
         }
       }
     });
@@ -278,12 +290,14 @@ export default function StoryView({ id }: { id: string }) {
           <LanguageSwitcher
             current={story.language}
             options={[{ id: story.id, language: story.language }, ...siblings.map(s => ({ id: s.id, language: s.language }))]}
+            storyId={id}
             storyTitle={story.title}
             storyExcerpt={story.excerpt ?? ""}
             storyContent={story.content}
             translatedLanguage={translation?.language ?? null}
-            onTranslated={(language, data) => setTranslation({ language, ...data })}
-            onShowOriginal={() => setTranslation(null)}
+            onTranslating={code => { setTranslating(code); setTranslation(null); }}
+            onTranslated={(language, data) => { setTranslating(null); setTranslation({ language, ...data }); }}
+            onShowOriginal={() => { setTranslating(null); setTranslation(null); }}
           />
           {story.series_title && (
             <span className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1"
@@ -324,24 +338,23 @@ export default function StoryView({ id }: { id: string }) {
           </span>
         </div>
 
-        {translation && (
+        {(translating || translation) && (
           <div className="flex items-center gap-2 mb-4 text-xs px-3 py-2 rounded-lg"
             style={{ background: "rgba(245,166,35,0.08)", color: "#B5701A", border: "1px solid rgba(245,166,35,0.15)" }}>
-            <Sparkles size={12} />
-            Translated to {LANGUAGES.find(l => l.code === translation.language)?.native ?? translation.language}
-            <button onClick={() => setTranslation(null)} className="ml-auto underline hover:no-underline">
-              Show original
-            </button>
+{translating
+              ? <>Translating to {LANGUAGES.find(l => l.code === translating)?.native ?? translating}<span className="ml-1 inline-flex gap-0.5">{["·","·","·"].map((d,i)=><span key={i} className="animate-bounce" style={{animationDelay:`${i*150}ms`}}>{d}</span>)}</span></>
+              : <>Translated to {LANGUAGES.find(l => l.code === translation!.language)?.native ?? translation!.language}<button onClick={() => setTranslation(null)} className="ml-auto underline hover:no-underline">Show original</button></>
+            }
           </div>
         )}
 
-        <h1 className="font-display text-3xl md:text-5xl font-black text-ink leading-tight mb-8">
+        <h1 className={`font-display text-3xl md:text-5xl font-black text-ink leading-tight mb-8 transition-opacity duration-300 ${translating ? "opacity-40" : "opacity-100"}`}>
           {translation?.title ?? story.title}
         </h1>
       </div>
 
       {/* Story body */}
-      <article className="max-w-3xl mx-auto px-4 sm:px-6 pb-10 space-y-1">
+      <article className={`max-w-3xl mx-auto px-4 sm:px-6 pb-10 space-y-1 transition-opacity duration-300 ${translating ? "opacity-40 pointer-events-none select-none" : "opacity-100"}`}>
         {renderBody(translation?.content ?? story.content)}
       </article>
 
@@ -371,6 +384,7 @@ export default function StoryView({ id }: { id: string }) {
             title={story.title}
             text={`"${story.title}" on Lekhsetu — read it for free.`}
             url={typeof window !== "undefined" ? window.location.href : ""}
+            showWhatsApp
             className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition-colors hover:border-saffron hover:text-saffron ml-auto"
             style={{ borderColor: "rgba(255,255,255,0.08)", color: "#6B6354" }}
           />

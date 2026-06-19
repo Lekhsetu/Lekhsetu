@@ -1,8 +1,9 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Globe, ChevronDown, Loader2 } from "lucide-react";
+import { Globe, ChevronDown } from "lucide-react";
 import { LANGUAGES } from "@/constants";
+import { getCachedTranslation, saveCachedTranslation, saveTranslationMemory } from "@/services/translationCache";
 
 export type LanguageOption = { id: string; language: string };
 
@@ -11,19 +12,23 @@ export type TranslatedContent = { title: string; excerpt: string; content: strin
 export default function LanguageSwitcher({
   current,
   options,
+  storyId,
   storyTitle,
   storyExcerpt,
   storyContent,
   translatedLanguage,
+  onTranslating,
   onTranslated,
   onShowOriginal,
 }: {
   current: string;
   options: LanguageOption[];
+  storyId?: string;
   storyTitle: string;
   storyExcerpt: string;
   storyContent: string;
   translatedLanguage?: string | null;
+  onTranslating?: (targetCode: string) => void;
   onTranslated: (language: string, data: TranslatedContent) => void;
   onShowOriginal: () => void;
 }) {
@@ -49,7 +54,20 @@ export default function LanguageSwitcher({
 
   const handleTranslate = async (code: string) => {
     setError(null);
+    setOpen(false);
     setTranslatingCode(code);
+    onTranslating?.(code);
+
+    // Check cache first — zero API cost if already translated before
+    if (storyId) {
+      const cached = await getCachedTranslation(storyId, code);
+      if (cached) {
+        onTranslated(code, cached);
+        setTranslatingCode(null);
+        return;
+      }
+    }
+
     try {
       const res = await fetch("/api/ai", {
         method: "POST",
@@ -65,12 +83,17 @@ export default function LanguageSwitcher({
       });
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || "Translation failed");
-      onTranslated(code, {
+      const result: TranslatedContent = {
         title: json.result.title,
         excerpt: json.result.excerpt ?? "",
         content: json.result.content,
-      });
-      setOpen(false);
+      };
+      onTranslated(code, result);
+      // Save to cache + translation memory in background — never blocks the UI
+      if (storyId) {
+        saveCachedTranslation(storyId, code, result);
+        saveTranslationMemory(current, code, storyContent, result.content);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Translation failed");
     } finally {
@@ -122,9 +145,7 @@ export default function LanguageSwitcher({
                     className="w-full text-left text-xs px-3 py-2 transition-colors flex items-center justify-between gap-2 hover:bg-cream disabled:opacity-50"
                     style={active ? { color: "#B5701A", fontWeight: 600 } : { color: "#6B6354" }}>
                     <span>{lang.native}</span>
-                    {translatingCode === lang.code
-                      ? <Loader2 size={11} className="animate-spin" />
-                      : <span className="text-[10px]">{active ? "Current" : lang.label}</span>}
+                    <span className="text-[10px]">{active ? "Current" : lang.label}</span>
                   </button>
                 );
               })}

@@ -6,7 +6,7 @@ import {
   ArrowLeft, Eye, Bold, Italic, List, Link2, Quote, Send,
   Sparkles, ChevronDown, EyeOff, Layers, Lightbulb,
   Loader2, X, CheckCheck, FileText, SpellCheck2, Languages,
-  PenLine, Search, Check,
+  PenLine,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { publishStory, updateStory, fetchStoryById } from "@/services/stories";
@@ -14,7 +14,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
 import { LANGUAGES } from "@/constants";
 import type { Story } from "@/types";
-import WriteTour, { tourDone } from "@/components/WriteTour";
 
 // ─── Writing prompts ────────────────────────────────────────────────────────
 const PROMPTS = [
@@ -96,23 +95,25 @@ function WritePageInner() {
   const [seriesTitle, setSeriesTitle] = useState("");
   const [seriesPart, setSeriesPart] = useState<number | "">("");
   const [showSeries, setShowSeries] = useState(false);
-  const [showLangPicker, setShowLangPicker] = useState(false);
-  const [langSearch, setLangSearch] = useState("");
-  const langPickerRef = useRef<HTMLDivElement>(null);
-  const [extraLanguages, setExtraLanguages] = useState<string[]>([]);
-  const [extraLangStatus, setExtraLangStatus] = useState<Record<string, "pending" | "done" | "error">>({});
   const [draftRestored, setDraftRestored] = useState(false);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
   const [aiAction, setAiAction] = useState<string>("");
+  const [aiUsedToday, setAiUsedToday] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const stored = JSON.parse(localStorage.getItem("lekh_ai_usage") ?? "{}");
+      const today = new Date().toDateString();
+      return stored.date === today ? (stored.count ?? 0) : 0;
+    } catch { return 0; }
+  });
   const [publishedId, setPublishedId] = useState<string | null>(null);
   const [activePromptIdx, setActivePromptIdx] = useState(() => Math.floor(Math.random() * PROMPTS.length));
   const [isEditing, setIsEditing] = useState(false);
   const [promptTranslations, setPromptTranslations] = useState<Record<string, string>>({});
   const [promptTranslating, setPromptTranslating] = useState(false);
-  const [showTour, setShowTour] = useState(false);
 
   const { textareaRef: bodyRef, wrapperRef: editorAreaRef, onChange: onBodyResize } = useAutoResizeTextarea(body);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -123,6 +124,7 @@ function WritePageInner() {
   const publishRef = useRef<HTMLButtonElement>(null);
   const seriesRef = useRef<HTMLButtonElement>(null);
   const visibilityRef = useRef<HTMLButtonElement>(null);
+  const langPickerRef = useRef<HTMLDivElement>(null);
 
   // Auto-translate (English in, selected language out) state — when a
   // non-English language is selected, newly-typed English text is translated
@@ -199,12 +201,6 @@ function WritePageInner() {
     return () => clearInterval(t);
   }, [title, body, category, language, tags, anonymous, isEditing]);
 
-  // First-time guided tour for new writers
-  useEffect(() => {
-    if (loading || !user || isEditing || tourDone()) return;
-    const t = setTimeout(() => setShowTour(true), 600);
-    return () => clearTimeout(t);
-  }, [loading, user, isEditing]);
 
   // Translate the active writing prompt into the selected language
   useEffect(() => {
@@ -238,14 +234,6 @@ function WritePageInner() {
     return () => document.removeEventListener("mousedown", fn);
   }, []);
 
-  // Close multi-language publish picker on outside click
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (langPickerRef.current && !langPickerRef.current.contains(e.target as Node)) setShowLangPicker(false);
-    };
-    document.addEventListener("mousedown", fn);
-    return () => document.removeEventListener("mousedown", fn);
-  }, []);
 
   // ── Toolbar formatting ──────────────────────────────────────────────────────
   const insertFormat = useCallback((type: "bold" | "italic" | "list" | "link" | "quote" | "divider") => {
@@ -382,7 +370,7 @@ function WritePageInner() {
   const addTag = async (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      let t = tagInput.trim().toLowerCase().replace(/,/g, "");
+      let t = tagInput.trim().toLowerCase().replace(/[,#]/g, "");
       if (!t || tags.includes(t) || tags.length >= 5) return;
       setTagInput("");
       if (language !== "en" && /[a-zA-Z]/.test(t)) {
@@ -393,12 +381,29 @@ function WritePageInner() {
   };
 
   // ── AI assistant ───────────────────────────────────────────────────────────
+  const AI_DAILY_LIMIT = 5;
+
+  const incrementAiUsage = () => {
+    const today = new Date().toDateString();
+    const next = aiUsedToday + 1;
+    localStorage.setItem("lekh_ai_usage", JSON.stringify({ date: today, count: next }));
+    setAiUsedToday(next);
+    return next;
+  };
+
   const runAi = async (action: string) => {
     if (!body.trim()) return;
+    if (aiUsedToday >= AI_DAILY_LIMIT) {
+      setAiAction(action);
+      setAiResult("__limit__");
+      setAiOpen(true);
+      return;
+    }
     setAiAction(action);
     setAiLoading(true);
     setAiResult("");
     setAiOpen(true);
+    incrementAiUsage();
     try {
       const res = await fetch("/api/ai", {
         method: "POST",
@@ -408,7 +413,7 @@ function WritePageInner() {
       const json = await res.json();
       setAiResult(json.result ?? json.error ?? "Something went wrong.");
     } catch {
-      setAiResult("AI is unavailable. Add GEMINI_API_KEY to .env.local to enable.");
+      setAiResult("AI is unavailable right now. Please try again.");
     }
     setAiLoading(false);
   };
@@ -437,13 +442,11 @@ function WritePageInner() {
     }
 
     const excerpt = body.split("\n\n").find(p => p.trim().length > 40)?.slice(0, 200) ?? body.slice(0, 200);
-    const translationGroupId = !isEditing && extraLanguages.length > 0 ? crypto.randomUUID() : undefined;
     const payload = {
       title: title.trim(), content: body.trim(), excerpt, category, language,
       tags, readTime: rt, anonymous,
       seriesTitle: seriesTitle.trim() || undefined,
       seriesPart: seriesPart !== "" ? Number(seriesPart) : undefined,
-      translationGroupId,
     };
 
     if (isEditing && editId) {
@@ -457,38 +460,6 @@ function WritePageInner() {
       localStorage.removeItem(DRAFT_KEY);
       setPublished(true);
       setPublishedId((data as Story)?.id ?? null);
-
-      if (translationGroupId && extraLanguages.length > 0) {
-        setExtraLangStatus(Object.fromEntries(extraLanguages.map(l => [l, "pending" as const])));
-        (async () => {
-          for (const targetLanguage of extraLanguages) {
-            try {
-              const res = await fetch("/api/ai", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "translate_to", content: body.trim(), title: title.trim(), language, targetLanguage }),
-              });
-              const json = await res.json();
-              if (!res.ok || !json.result) throw new Error(json.error || "Translation failed");
-
-              const tTitle: string = json.result.title;
-              const tContent: string = json.result.content;
-              const tExcerpt = tContent.split("\n\n").find((p: string) => p.trim().length > 40)?.slice(0, 200) ?? tContent.slice(0, 200);
-
-              const { error: tErr } = await publishStory({
-                authorId: user.id,
-                title: tTitle, content: tContent, excerpt: tExcerpt,
-                category, language: targetLanguage,
-                tags, readTime: rt, anonymous,
-                translationGroupId,
-              });
-              setExtraLangStatus(prev => ({ ...prev, [targetLanguage]: tErr ? "error" : "done" }));
-            } catch {
-              setExtraLangStatus(prev => ({ ...prev, [targetLanguage]: "error" }));
-            }
-          }
-        })();
-      }
     }
     setPublishing(false);
   };
@@ -516,20 +487,6 @@ function WritePageInner() {
         <p className="mb-8 text-sm" style={{ color: "#7A6A50" }}>
           Your story is live and can be read by anyone. It will find the people who need it.
         </p>
-        {Object.keys(extraLangStatus).length > 0 && (
-          <div className="mb-8 flex flex-wrap gap-1.5 justify-center">
-            {Object.entries(extraLangStatus).map(([code, status]) => {
-              const lang = LANGUAGES.find(l => l.code === code);
-              return (
-                <span key={code} className="flex items-center gap-1 text-xs px-3 py-1 rounded-full"
-                  style={{ border: "1px solid rgba(217,140,31,0.2)", color: "#7A6A50" }}>
-                  {status === "pending" && <Loader2 size={10} className="animate-spin" />}
-                  {lang?.native ?? code}: {status === "pending" ? "translating…" : status === "done" ? "published" : "failed"}
-                </span>
-              );
-            })}
-          </div>
-        )}
         <div className="flex gap-3 justify-center flex-wrap">
           {publishedId && (
             <Link href={`/story/${publishedId}`}
@@ -697,69 +654,14 @@ function WritePageInner() {
                 <EyeOff size={11} /> {anonymous ? "Anonymous" : "Public"}
               </button>
 
-              {/* Multi-language publish picker */}
-              {!isEditing && (
-                <div className="relative" ref={langPickerRef}>
-                  <button onClick={() => setShowLangPicker(!showLangPicker)} title="Also publish translated versions in other languages"
-                    className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full transition-all"
-                    style={extraLanguages.length > 0
-                      ? { background: "rgba(245,166,35,0.12)", color: "#B5701A", border: "1px solid rgba(217,140,31,0.25)" }
-                      : { border: "1px solid rgba(120,90,50,0.15)", color: "#9C8B6F" }}>
-                    <Languages size={11} />
-                    {extraLanguages.length > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#F5A623" }} />
-                    )}
-                    {extraLanguages.length > 0 ? `Publish in ${extraLanguages.length + 1} languages` : "Translate & publish"}
-                    <ChevronDown size={11} />
-                  </button>
-
-                  {showLangPicker && (
-                    <div className="absolute left-0 top-full mt-1.5 z-30 w-64 rounded-xl shadow-lg overflow-hidden bg-paper"
-                      style={{ border: "1px solid rgba(120,90,50,0.15)" }}>
-                      <div className="flex items-center gap-1.5 px-3 py-2" style={{ borderBottom: "1px solid rgba(120,90,50,0.1)" }}>
-                        <Search size={12} style={{ color: "#9C8B6F" }} />
-                        <input
-                          autoFocus
-                          value={langSearch}
-                          onChange={e => setLangSearch(e.target.value)}
-                          placeholder="Search languages…"
-                          className="flex-1 bg-transparent text-xs focus:outline-none"
-                          style={{ color: "#5A4D38" }}
-                        />
-                      </div>
-                      <div className="max-h-56 overflow-y-auto">
-                        {LANGUAGES.filter(l => l.code !== language)
-                          .filter(l => `${l.label} ${l.native}`.toLowerCase().includes(langSearch.toLowerCase()))
-                          .map(l => {
-                            const selected = extraLanguages.includes(l.code);
-                            return (
-                              <button key={l.code}
-                                onClick={() => setExtraLanguages(prev => selected ? prev.filter(c => c !== l.code) : [...prev, l.code])}
-                                className="w-full flex items-center justify-between gap-2 text-xs px-3 py-2 transition-colors hover:bg-cream text-left"
-                                style={{ color: selected ? "#B5701A" : "#5A4D38" }}>
-                                <span>{l.native} <span style={{ color: "#9C8B6F" }}>({l.label})</span></span>
-                                {selected && <Check size={12} />}
-                              </button>
-                            );
-                          })}
-                      </div>
-                      <div className="flex items-center justify-between px-3 py-2 text-xs" style={{ borderTop: "1px solid rgba(120,90,50,0.1)", color: "#9C8B6F" }}>
-                        <span>Publish in {extraLanguages.length + 1} language{extraLanguages.length > 0 ? "s" : ""}</span>
-                        {extraLanguages.length > 0 && (
-                          <button onClick={() => setExtraLanguages([])} className="hover:text-saffron transition-colors">Clear</button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* AI assistant */}
               <div className="relative ml-auto" ref={aiButtonRef}>
                 <button onClick={() => setAiOpen(!aiOpen)}
-                  className="flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-all"
-                  style={{ background: "rgba(245,166,35,0.1)", color: "#F5A623", border: "1px solid rgba(245,166,35,0.2)" }}>
+                  className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full transition-all"
+                  style={{ background: "rgba(245,166,35,0.1)", color: aiUsedToday >= AI_DAILY_LIMIT ? "#6B6354" : "#F5A623", border: "1px solid rgba(245,166,35,0.2)" }}>
                   <Sparkles size={11} /> AI
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>{AI_DAILY_LIMIT - aiUsedToday}/{AI_DAILY_LIMIT}</span>
                 </button>
                 {aiOpen && !aiLoading && !aiResult && (
                   <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-2xl z-50 p-2 backdrop-blur-xl"
@@ -886,7 +788,7 @@ function WritePageInner() {
                   <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
                     style={{ border: "1px solid rgba(120,90,50,0.2)", color: "#9C8B6F" }}>
                     #
-                    <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={addTag}
+                    <input value={tagInput} onChange={e => setTagInput(e.target.value.replace(/#/g, ""))} onKeyDown={addTag}
                       placeholder={tags.length === 0 ? "Add tags (press Enter)…" : "tag"}
                       className="paper-input bg-transparent focus:outline-none"
                       style={{ color: "#7A6A50", minWidth: 80 }}
@@ -974,6 +876,14 @@ function WritePageInner() {
                 <Loader2 size={20} className="animate-spin" style={{ color: "#F5A623" }} />
                 <span className="text-sm" style={{ color: "#6B6354" }}>Thinking…</span>
               </div>
+            ) : aiResult === "__limit__" ? (
+              <div className="text-center py-8">
+                <div style={{ fontSize: 40, marginBottom: 16 }}>✋</div>
+                <p className="font-semibold text-sm mb-2" style={{ color: "#F0EAD6" }}>Daily AI limit reached</p>
+                <p className="text-xs leading-relaxed" style={{ color: "#6B6354" }}>
+                  You have used all {AI_DAILY_LIMIT} free AI assists for today. Your limit resets at midnight.
+                </p>
+              </div>
             ) : (
               <>
                 <p className="text-sm leading-relaxed mb-5 whitespace-pre-wrap" style={{ color: "#B8AE98" }}>{aiResult}</p>
@@ -997,46 +907,6 @@ function WritePageInner() {
         </div>
       )}
 
-      {/* First-time guided tour */}
-      {showTour && (
-        <WriteTour onDone={() => setShowTour(false)} steps={[
-          {
-            ref: pickerRef,
-            title: "Set the scene",
-            desc: "Pick the language you're writing in. The whole editor, prompts, hints, and AI, adapts to your choice.",
-          },
-          {
-            ref: promptsRef,
-            title: "Stuck? Start here",
-            desc: "Writing prompts give you a starting point, shown in your chosen language. Tap \"Use this prompt\" to drop it straight into your title.",
-          },
-          {
-            ref: seriesRef,
-            title: "Writing a series?",
-            desc: "Group multiple stories together as a series, so readers can follow along part by part.",
-          },
-          {
-            ref: visibilityRef,
-            title: "Your call on visibility",
-            desc: "Publish under your name, or go anonymous, your story stays yours either way.",
-          },
-          {
-            ref: langPickerRef,
-            title: "Reach more readers",
-            desc: "Translate & publish your story in other languages at once, each version stays linked together.",
-          },
-          {
-            ref: aiButtonRef,
-            title: "Your AI co-writer",
-            desc: "Continue writing, polish tone, fix grammar, generate an excerpt, or translate, anytime, in one click.",
-          },
-          {
-            ref: publishRef,
-            title: "Ready to share?",
-            desc: "When everything looks good, hit Publish, your story goes live and starts building your readership.",
-          },
-        ]} />
-      )}
     </div>
   );
 }

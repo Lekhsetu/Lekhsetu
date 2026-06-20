@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -634,7 +635,7 @@ function WritePageInner() {
               {/* Language */}
               <div className="flex items-center gap-1">
                 <div className="relative">
-                  {langOpen && <div className="fixed inset-0 z-40" onClick={() => setLangOpen(false)} />}
+                  {langOpen && createPortal(<div className="fixed inset-0 z-40" onClick={() => setLangOpen(false)} />, document.body)}
                   <button onClick={() => setLangOpen(!langOpen)}
                     className="relative z-50 flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-all"
                     style={{ border: "1px solid rgba(120,90,50,0.2)", color: "#5A4D38" }}>
@@ -685,7 +686,7 @@ function WritePageInner() {
 
               {/* Category */}
               <div className="relative">
-                {catOpen && <div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} />}
+                {catOpen && createPortal(<div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} />, document.body)}
                 <button onClick={() => setCatOpen(!catOpen)}
                   className="flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-all relative z-50"
                   style={category
@@ -738,7 +739,7 @@ function WritePageInner() {
               {/* AI assistant */}
               <div className="relative ml-auto">
                 {aiOpen && !aiLoading && !aiResult && (
-                  <div className="fixed inset-0 z-40" onClick={() => setAiOpen(false)} />
+                  {createPortal(<div className="fixed inset-0 z-40" onClick={() => setAiOpen(false)} />, document.body)}
                 )}
                 <button onClick={() => setAiOpen(!aiOpen)}
                   className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full transition-all relative z-50"

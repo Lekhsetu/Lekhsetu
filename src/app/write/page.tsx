@@ -738,9 +738,7 @@ function WritePageInner() {
 
               {/* AI assistant */}
               <div className="relative ml-auto">
-                {aiOpen && !aiLoading && !aiResult && (
-                  {createPortal(<div className="fixed inset-0 z-40" onClick={() => setAiOpen(false)} />, document.body)}
-                )}
+                {aiOpen && !aiLoading && !aiResult && createPortal(<div className="fixed inset-0 z-40" onClick={() => setAiOpen(false)} />, document.body)}
                 <button onClick={() => setAiOpen(!aiOpen)}
                   className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full transition-all relative z-50"
                   style={{ background: "rgba(245,166,35,0.1)", color: aiUsedToday >= AI_DAILY_LIMIT ? "#6B6354" : "#F5A623", border: "1px solid rgba(245,166,35,0.2)" }}>

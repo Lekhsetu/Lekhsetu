@@ -241,11 +241,6 @@ body::after {
 .paper-page .paper-input::placeholder { color: #B0A48C; }
 .paper-page ::selection { background: rgba(217,140,31,0.25); }
 
-/* ─── CUSTOM CURSOR ─────────────────────────────────────────── */
-@media (hover: hover) {
-  *, *::before, *::after { cursor: none !important; }
-  .native-cursor *, .native-cursor *::before, .native-cursor *::after { cursor: auto !important; }
-}
 .cursor-dot {
   position: fixed;
   left: 0; top: 0;

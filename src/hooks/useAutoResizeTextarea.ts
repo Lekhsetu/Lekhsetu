@@ -7,11 +7,19 @@ export function useAutoResizeTextarea(value: string, breatheDelayMs = 3000) {
 
   const resize = () => {
     const el = textareaRef.current;
-    if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
+    if (!el) return;
+    // Anchor the viewport before collapsing height so the caret's visual
+    // position doesn't drift from its selectionStart byte-offset.
+    const scrollY = window.scrollY;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+    window.scrollTo(0, scrollY);
   };
 
   const onChange = () => {
-    resize();
+    // Resize is handled by useEffect([value]) after React commits the new
+    // value — calling it here too would fire twice per keystroke (once on
+    // the stale value, once on the updated value), doubling the scroll flash.
     const wrapper = wrapperRef.current;
     if (wrapper) wrapper.classList.remove("editor-breathing");
     clearTimeout(breatheTimer.current);

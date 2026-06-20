@@ -7,7 +7,9 @@ import Navbar from "@/components/Navbar";
 import StoryCard from "@/components/StoryCard";
 import Avatar from "@/components/Avatar";
 import ShareButton from "@/components/ShareButton";
+import BadgePill from "@/components/BadgePill";
 import { fetchProfileByUsername, fetchStoriesByAuthor } from "@/services/profiles";
+import { fetchUserBadges, type WriterBadge } from "@/services/badges";
 import { useAuth } from "@/contexts/AuthContext";
 import { CATEGORIES } from "@/constants";
 import type { Profile, Story } from "@/types";
@@ -19,6 +21,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
+  const [badges, setBadges] = useState<WriterBadge[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
@@ -26,8 +29,12 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     fetchProfileByUsername(username).then(async p => {
       if (!p) { setLoading(false); return; }
       setProfile(p);
-      const s = await fetchStoriesByAuthor(p.id, getPreferredLanguage());
+      const [s, b] = await Promise.all([
+        fetchStoriesByAuthor(p.id, getPreferredLanguage()),
+        fetchUserBadges(p.id),
+      ]);
       setStories(s);
+      setBadges(b);
       setLoading(false);
     });
   }, [username]);
@@ -75,6 +82,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink">{displayName}</h1>
                 <p className="text-sm text-muted">@{profile.username}</p>
+                {badges.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {badges.map(b => <BadgePill key={b.id} type={b.badge_type} size="sm" />)}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <ShareButton

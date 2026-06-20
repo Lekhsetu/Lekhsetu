@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, Heart, MessageCircle, Sparkles, BookOpen, PenLine, ArrowUpRight, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import BadgePill from "@/components/BadgePill";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchUserInsights, fetchUserActivityTimeline, type StoryInsight, type UserInsightsTotals, type TimelinePoint } from "@/services/insights";
 import { deleteStory } from "@/services/stories";
+import { fetchUserBadges, checkAndAwardBadges, type WriterBadge } from "@/services/badges";
 import { CATEGORIES } from "@/constants";
 import { timeAgo } from "@/utils/time";
 import LineChart from "@/components/charts/LineChart";
@@ -90,6 +92,7 @@ export default function DashboardPage() {
   const [stories, setStories] = useState<StoryInsight[]>([]);
   const [totals, setTotals] = useState<UserInsightsTotals | null>(null);
   const [timeline, setTimeline] = useState<{ claps: TimelinePoint[]; comments: TimelinePoint[] } | null>(null);
+  const [badges, setBadges] = useState<WriterBadge[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<StoryInsight | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -111,12 +114,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
+    checkAndAwardBadges(user.id);
     fetchUserInsights(user.id).then(({ stories, totals }) => {
       setStories(stories);
       setTotals(totals);
       setDataLoading(false);
     });
     fetchUserActivityTimeline(user.id).then(setTimeline);
+    fetchUserBadges(user.id).then(setBadges);
   }, [user]);
 
   if (loading || !user) return (
@@ -159,6 +164,15 @@ export default function DashboardPage() {
             <StatCard icon={Eye} label="Total reads" value={totals.totalViews} />
             <StatCard icon={Heart} label="Total likes" value={totals.totalLikes} />
             <StatCard icon={Sparkles} label="Claps" value={totals.totalClaps} />
+          </div>
+        )}
+
+        {!dataLoading && badges.length > 0 && (
+          <div className="mb-10">
+            <h2 className="font-display text-xl font-bold text-ink mb-4">Your badges</h2>
+            <div className="flex flex-wrap gap-3">
+              {badges.map(b => <BadgePill key={b.id} type={b.badge_type} size="md" />)}
+            </div>
           </div>
         )}
 

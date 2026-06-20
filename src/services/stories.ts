@@ -102,12 +102,18 @@ export async function fetchRelatedStories(category: string, excludeId: string, l
   return dedupeTranslations((data ?? []) as Story[]).slice(0, limit);
 }
 
-export async function incrementStoryView(id: string, userId?: string | null) {
+export async function incrementStoryView(id: string, userId?: string | null, translationGroupId?: string | null) {
   if (!supabase) return;
-  const key = `viewed_${id}`;
+  // Dedup key uses the group ID so reading any translation in the same session
+  // counts as one view for the whole article, not one per language copy.
+  const key = `viewed_${translationGroupId ?? id}`;
   if (typeof window !== "undefined" && sessionStorage.getItem(key)) return;
   try {
-    await supabase.rpc("increment_view", { p_story_id: id, p_user_id: userId ?? null });
+    await supabase.rpc("increment_view", {
+      p_story_id: id,
+      p_user_id: userId ?? null,
+      p_group_id: translationGroupId ?? null,
+    });
     if (typeof window !== "undefined") sessionStorage.setItem(key, "1");
   } catch (err) {
     console.error("View Increment Error:", err);
@@ -318,6 +324,18 @@ export async function deleteStory(storyId: string, translationGroupId?: string |
     : await supabase.from("stories").delete().eq("id", storyId);
   if (error) console.error("Story Delete Error:", error);
   return { error };
+}
+
+/** All stories (published + drafts) for the dashboard — minimal select, no profile join needed. */
+export async function fetchMyStories(authorId: string): Promise<Pick<Story, "id" | "title" | "category" | "language" | "read_time" | "published" | "views_count" | "created_at" | "anonymous" | "excerpt">[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("stories")
+    .select("id, title, category, language, read_time, published, views_count, created_at, anonymous, excerpt")
+    .eq("author_id", authorId)
+    .order("created_at", { ascending: false });
+  if (error) console.error("Fetch My Stories Error:", error.message);
+  return (data ?? []) as Pick<Story, "id" | "title" | "category" | "language" | "read_time" | "published" | "views_count" | "created_at" | "anonymous" | "excerpt">[];
 }
 
 export async function saveDraftStory(payload: {

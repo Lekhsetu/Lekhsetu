@@ -1,8 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { CATEGORIES } from "@/constants";
+import { CATEGORIES, LEGACY_CATEGORIES } from "@/constants";
 
-const cat = (id: string) => CATEGORIES.find(c => c.id === id)!;
+const cat = (id: string) =>
+  CATEGORIES.find(c => c.id === id) ??
+  LEGACY_CATEGORIES.find(c => c.id === id) ??
+  { color: "#e8751a", emoji: "📖", label: id };;
 
 const T = [
   { q: "I wrote about failing my entrance exam three times before finally getting in. I needed to read that it doesn't have to happen the first time.", catId: "exams" },

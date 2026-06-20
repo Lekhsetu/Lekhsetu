@@ -13,7 +13,9 @@ import { publishStory, updateStory, fetchStoryById } from "@/services/stories";
 import { getCachedTranslation } from "@/services/translationCache";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
-import { LANGUAGES } from "@/constants";
+import { LANGUAGES, CATEGORIES } from "@/constants";
+
+const MIN_WORDS = 100;
 import type { Story } from "@/types";
 
 // ─── Writing prompts ────────────────────────────────────────────────────────
@@ -83,7 +85,7 @@ function WritePageInner() {
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [category, setCategory] = useState("career");
+  const [category, setCategory] = useState("");
   const [language, setLanguage] = useState("en");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -119,9 +121,7 @@ function WritePageInner() {
 
   const { textareaRef: bodyRef, wrapperRef: editorAreaRef, onChange: onBodyResize } = useAutoResizeTextarea(body);
   const titleRef = useRef<HTMLTextAreaElement>(null);
-  const langRef = useRef<HTMLDivElement>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
-  const aiButtonRef = useRef<HTMLDivElement>(null);
+  const [catOpen, setCatOpen] = useState(false);
   const promptsRef = useRef<HTMLDivElement>(null);
   const publishRef = useRef<HTMLButtonElement>(null);
   const seriesRef = useRef<HTMLButtonElement>(null);
@@ -183,7 +183,7 @@ function WritePageInner() {
       const draft = JSON.parse(raw);
       setTitle(draft.title ?? "");
       setBody(draft.body ?? "");
-      setCategory(draft.category ?? "career");
+      setCategory(draft.category ?? "");
       setLanguage(draft.language ?? "en");
       setTags(draft.tags ?? []);
       setAnonymous(draft.anonymous ?? false);
@@ -227,14 +227,6 @@ function WritePageInner() {
     return () => { cancelled = true; };
   }, [language, activePromptIdx, promptTranslations]);
 
-  // Close language dropdown on outside click
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
-    };
-    document.addEventListener("mousedown", fn);
-    return () => document.removeEventListener("mousedown", fn);
-  }, []);
 
 
   // ── Toolbar formatting ──────────────────────────────────────────────────────
@@ -477,7 +469,7 @@ function WritePageInner() {
 
   // ── Publish / Update ───────────────────────────────────────────────────────
   const handlePublish = async () => {
-    if (!title.trim() || !body.trim()) return;
+    if (!title.trim() || !body.trim() || !category || wc < MIN_WORDS) return;
     setError(""); setPublishing(true);
     if (!supabase || !user) {
       setError("Not connected. Please sign in and ensure the backend is configured.");
@@ -574,12 +566,19 @@ function WritePageInner() {
               style={{ border: "1px solid rgba(120,90,50,0.25)", color: "#5A4D38" }}>
               <Eye size={11} />{preview ? "Edit" : "Preview"}
             </button>
-            <button ref={publishRef} onClick={handlePublish} disabled={!title.trim() || !body.trim() || publishing}
-              className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full font-semibold transition-all disabled:opacity-30"
-              style={{ background: "#F5A623", color: "#2B2014" }}>
-              {publishing ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
-              {publishing ? "Saving…" : isEditing ? "Update" : "Publish"}
-            </button>
+            <div className="flex flex-col items-end gap-0.5">
+              <button ref={publishRef} onClick={handlePublish} disabled={!title.trim() || !body.trim() || !category || wc < MIN_WORDS || publishing}
+                className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full font-semibold transition-all disabled:opacity-30"
+                style={{ background: "#F5A623", color: "#2B2014" }}>
+                {publishing ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+                {publishing ? "Saving…" : isEditing ? "Update" : "Publish"}
+              </button>
+              {!publishing && (!category || wc < MIN_WORDS) && (title.trim() || body.trim()) && (
+                <span className="text-[10px]" style={{ color: "#9C8B6F" }}>
+                  {!category ? "Pick a category" : `${MIN_WORDS - wc} more words needed`}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -606,8 +605,14 @@ function WritePageInner() {
         {!preview ? (
           <>
             {/* Toolbar */}
-            <div className="flex items-center gap-1 mb-6 pb-4 flex-wrap gap-y-2"
-              style={{ borderBottom: "1px solid rgba(120,90,50,0.12)" }}>
+            <div className="sticky z-30 flex items-center gap-1 flex-wrap gap-y-2 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 mb-4"
+              style={{
+                top: "57px",
+                borderBottom: "1px solid rgba(120,90,50,0.12)",
+                background: "rgba(244,236,220,0.97)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+              }}>
 
               {/* Format buttons */}
               {([
@@ -627,10 +632,11 @@ function WritePageInner() {
               <div className="w-px h-5 mx-1" style={{ background: "rgba(120,90,50,0.15)" }} />
 
               {/* Language */}
-              <div className="flex items-center gap-1" ref={pickerRef}>
-                <div className="relative" ref={langRef}>
+              <div className="flex items-center gap-1">
+                <div className="relative">
+                  {langOpen && <div className="fixed inset-0 z-40" onClick={() => setLangOpen(false)} />}
                   <button onClick={() => setLangOpen(!langOpen)}
-                    className="flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-all"
+                    className="relative z-50 flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-all"
                     style={{ border: "1px solid rgba(120,90,50,0.2)", color: "#5A4D38" }}>
                     {selectedLang?.native ?? "English"} <ChevronDown size={10} />
                   </button>
@@ -677,6 +683,37 @@ function WritePageInner() {
                 </span>
               )}
 
+              {/* Category */}
+              <div className="relative">
+                {catOpen && <div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} />}
+                <button onClick={() => setCatOpen(!catOpen)}
+                  className="flex items-center gap-1 text-xs px-3 py-1 rounded-full transition-all relative z-50"
+                  style={category
+                    ? { border: `1px solid ${CATEGORIES.find(c => c.id === category)!.color}55`, color: CATEGORIES.find(c => c.id === category)!.color, background: CATEGORIES.find(c => c.id === category)!.color + "12" }
+                    : { border: "1px solid rgba(217,140,31,0.4)", color: "#D98C1F", background: "rgba(217,140,31,0.07)" }
+                  }>
+                  {category
+                    ? <>{CATEGORIES.find(c => c.id === category)!.emoji} {CATEGORIES.find(c => c.id === category)!.label}</>
+                    : <>Category <span style={{ fontWeight: 700 }}>*</span></>}
+                  <ChevronDown size={10} style={{ marginLeft: 2, opacity: 0.6, transform: catOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                </button>
+                {catOpen && (
+                  <div className="absolute left-0 top-full mt-1 w-48 max-h-72 overflow-y-auto rounded-xl shadow-xl z-50 py-1 scrollbar-none"
+                    style={{ background: "#FBF6EA", border: "1px solid rgba(120,90,50,0.18)", boxShadow: "0 8px 28px rgba(0,0,0,0.12)" }}>
+                    {CATEGORIES.map(cat => (
+                      <button key={cat.id}
+                        onClick={() => { setCategory(cat.id); setCatOpen(false); }}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-xs text-left transition-colors hover:bg-black/5"
+                        style={{ color: category === cat.id ? cat.color : "#5A4D38", background: category === cat.id ? cat.color + "12" : "transparent" }}>
+                        <span>{cat.emoji}</span>
+                        <span className="flex-1">{cat.label}</span>
+                        {category === cat.id && <span style={{ color: cat.color, fontWeight: 700 }}>✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="w-px h-5 mx-1" style={{ background: "rgba(120,90,50,0.15)" }} />
 
               {/* Series toggle */}
@@ -699,9 +736,12 @@ function WritePageInner() {
 
 
               {/* AI assistant */}
-              <div className="relative ml-auto" ref={aiButtonRef}>
+              <div className="relative ml-auto">
+                {aiOpen && !aiLoading && !aiResult && (
+                  <div className="fixed inset-0 z-40" onClick={() => setAiOpen(false)} />
+                )}
                 <button onClick={() => setAiOpen(!aiOpen)}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full transition-all"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full transition-all relative z-50"
                   style={{ background: "rgba(245,166,35,0.1)", color: aiUsedToday >= AI_DAILY_LIMIT ? "#6B6354" : "#F5A623", border: "1px solid rgba(245,166,35,0.2)" }}>
                   <Sparkles size={11} /> AI
                   <span style={{ fontSize: 10, opacity: 0.7 }}>{AI_DAILY_LIMIT - aiUsedToday}/{AI_DAILY_LIMIT}</span>

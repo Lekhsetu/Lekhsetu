@@ -96,7 +96,7 @@ async function callGroq(prompt: string): Promise<string | null> {
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
-      max_tokens: 2048,
+      max_tokens: 4096,
     }),
   });
 
@@ -120,7 +120,7 @@ async function callGroqFast(prompt: string): Promise<string | null> {
         { role: "user", content: prompt },
       ],
       temperature: 0.2,
-      max_tokens: 3000,
+      max_tokens: 4096,
     }),
   });
 
@@ -242,7 +242,7 @@ async function callOpenRouterAlt(prompt: string): Promise<string | null> {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: "mistralai/mistral-7b-instruct:free",
+      model: "qwen/qwen-2.5-7b-instruct:free",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 2048,
@@ -254,33 +254,12 @@ async function callOpenRouterAlt(prompt: string): Promise<string | null> {
   return json.choices?.[0]?.message?.content ?? null;
 }
 
-async function callGemini(prompt: string): Promise<string | null> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return null;
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-      }),
-    }
-  );
-
-  if (!res.ok) throw new Error(`Gemini error ${res.status}: ${await res.text()}`);
-  const json = await res.json();
-  return json.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
-}
 
 const PROVIDERS = [
   { name: "Groq", call: callGroq },
   { name: "Cerebras", call: callCerebras },
   { name: "OpenRouter", call: callOpenRouter },
   { name: "OpenRouterAlt", call: callOpenRouterAlt },
-  { name: "Gemini", call: callGemini },
 ];
 
 async function generate(prompt: string): Promise<{ result?: string; error?: string; status?: number }> {
@@ -347,6 +326,7 @@ export async function POST(req: NextRequest) {
       `Title: ${title}\nExcerpt: ${excerpt}\nContent:\n${trimmedContent}`;
 
     // Try Sarvam first for Indian language pairs — dedicated model, best quality.
+    console.log(`[translate_to] trying Sarvam: ${language} → ${targetLanguage}`);
     try {
       const [tTitle, tExcerpt, tContent] = await Promise.all([
         sarvamTranslateSegment(title, language, targetLanguage),
@@ -354,8 +334,10 @@ export async function POST(req: NextRequest) {
         sarvamTranslateSegment(trimmedContent, language, targetLanguage),
       ]);
       if (tTitle && tContent) {
+        console.log("[translate_to] Sarvam succeeded");
         return NextResponse.json({ result: { title: tTitle, excerpt: tExcerpt ?? "", content: tContent } });
       }
+      console.log("[translate_to] Sarvam skipped — unsupported language pair or empty response");
     } catch (err) {
       console.error("[translate_to] Sarvam threw:", err);
     }
@@ -366,7 +348,6 @@ export async function POST(req: NextRequest) {
       { name: "Groq", call: callGroq },
       { name: "OpenRouter", call: callOpenRouter },
       { name: "OpenRouterAlt", call: callOpenRouterAlt },
-      { name: "Gemini", call: callGemini },
     ];
 
     let configured = false;

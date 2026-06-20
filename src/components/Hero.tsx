@@ -5,30 +5,27 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { fetchCommunityStats } from "@/services/stories";
 
 const FLOATERS = [
-  { text: "लिखें",  x: "5%",  y: "20%", s: "text-4xl",  d: "0s",   depth: 0.028, fdur: 7,  fdel: 0   },
-  { text: "লেখো",   x: "81%", y: "17%", s: "text-3xl",  d: "1.5s", depth: 0.045, fdur: 9,  fdel: 2   },
-  { text: "ਲਿਖੋ",  x: "70%", y: "34%", s: "text-2xl",  d: "0.7s", depth: 0.022, fdur: 11, fdel: 4   },
-  { text: "لکھیں",  x: "4%",  y: "62%", s: "text-xl",   d: "2.1s", depth: 0.032, fdur: 8,  fdel: 1   },
-  { text: "எழுது",  x: "75%", y: "62%", s: "text-2xl",  d: "2s",   depth: 0.038, fdur: 10, fdel: 3   },
-  { text: "писать", x: "13%", y: "50%", s: "text-xl",   d: "0.9s", depth: 0.018, fdur: 12, fdel: 5   },
-  { text: "書く",   x: "57%", y: "78%", s: "text-2xl",  d: "1.3s", depth: 0.028, fdur: 7,  fdel: 6   },
-  { text: "ज्ञान",  x: "87%", y: "44%", s: "text-lg",   d: "2.5s", depth: 0.022, fdur: 9,  fdel: 2.5 },
-  { text: "كتابة",  x: "43%", y: "87%", s: "text-xl",   d: "1.8s", depth: 0.018, fdur: 11, fdel: 7   },
+  { text: "लिखें",    x: "5%",  y: "20%", s: "text-4xl",  d: "0s",   depth: 0.028, fdur: 7,  fdel: 0   },
+  { text: "ಬರೆಯಿರಿ", x: "81%", y: "17%", s: "text-3xl",  d: "1.5s", depth: 0.045, fdur: 9,  fdel: 2   },
+  { text: "लिहा",    x: "70%", y: "34%", s: "text-2xl",  d: "0.7s", depth: 0.022, fdur: 11, fdel: 4   },
+  { text: "എഴുതൂ",  x: "4%",  y: "62%", s: "text-xl",   d: "2.1s", depth: 0.032, fdur: 8,  fdel: 1   },
+  { text: "Write",   x: "75%", y: "62%", s: "text-2xl",  d: "2s",   depth: 0.038, fdur: 10, fdel: 3   },
+  { text: "कहानी",  x: "13%", y: "50%", s: "text-xl",   d: "0.9s", depth: 0.018, fdur: 12, fdel: 5   },
+  { text: "ಕಥೆ",    x: "57%", y: "78%", s: "text-2xl",  d: "1.3s", depth: 0.028, fdur: 7,  fdel: 6   },
+  { text: "आत्मकथा",x: "87%", y: "44%", s: "text-lg",   d: "2.5s", depth: 0.022, fdur: 9,  fdel: 2.5 },
+  { text: "കഥ",     x: "43%", y: "87%", s: "text-xl",   d: "1.8s", depth: 0.018, fdur: 11, fdel: 7   },
   { text: "story",  x: "8%",  y: "83%", s: "text-base", d: "1.2s", depth: 0.014, fdur: 8,  fdel: 4.5 },
-  { text: "bridge", x: "67%", y: "85%", s: "text-base", d: "0.5s", depth: 0.018, fdur: 13, fdel: 1.5 },
-  { text: "लिहा",  x: "29%", y: "9%",  s: "text-xl",   d: "1.6s", depth: 0.026, fdur: 6,  fdel: 3.5 },
+  { text: "voice",  x: "67%", y: "85%", s: "text-base", d: "0.5s", depth: 0.018, fdur: 13, fdel: 1.5 },
+  { text: "गोष्ट",  x: "29%", y: "9%",  s: "text-xl",   d: "1.6s", depth: 0.026, fdur: 6,  fdel: 3.5 },
 ];
 
 const TYPEWRITER_WORDS = [
-  "लिखें", "Write", "লেখো", "ਲਿਖੋ", "எழுது",
-  "لکھیں", "писать", "書く", "Escribir", "Écrire",
-  "ಬರೆಯಿರಿ", "రాయండి",
+  "लिखें", "Write", "ಬರೆಯಿರಿ", "लिहा", "എഴുതൂ",
 ];
 
 const SCRIPTS = [
-  "Write", "लिखें", "লেখো", "ਲਿਖੋ", "எழுது", "لکھیں",
-  "كتابة", "писать", "書く", "쓰세요", "Escribir", "Écrire",
-  "Kuandika", "Schreiben", "Scrivi", "ఉందా", "ಬರೆಯಿರಿ", "Schrijven",
+  "Write", "लिखें", "ಬರೆಯಿರಿ", "लिहा", "എഴുതൂ",
+  "story", "कहानी", "ಕಥೆ", "गोष्ट", "കഥ",
 ];
 
 // Round to 4dp — prevents floating-point divergence between Node.js (server)
@@ -345,16 +342,16 @@ export default function Hero() {
       {/* ─── Main content ─── */}
       <div className="relative z-10 text-center max-w-5xl mx-auto px-6 pt-20 pb-16 sm:pb-24">
 
-        {/* Ink-stamp badge */}
+        {/* Badge */}
         <div className="anim-stamp inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6"
           style={{ border: "1px solid rgba(245,166,35,0.25)", background: "rgba(245,166,35,0.07)" }}>
           <Sparkles size={11} style={{ color: "#F5A623" }} />
           <span className="text-xs tracking-widest uppercase" style={{ color: "#F5A623" }}>
-            Write in your language · Read for free
+            Your story belongs here
           </span>
         </div>
 
-        {/* Typewriter */}
+        {/* Typewriter — "write" in every language */}
         <div className="anim-fade-up delay-200 flex items-center justify-center mb-5" style={{ minHeight: "4.5rem" }}>
           <span className="font-display font-black inline-flex items-center"
             style={{ fontSize: "clamp(2.4rem,5.5vw,4.4rem)", color: "#F5A623", letterSpacing: "-0.02em" }}>
@@ -364,33 +361,29 @@ export default function Hero() {
           </span>
         </div>
 
-        {/* Headline — word by word */}
+        {/* Headline */}
         <h1 className="font-display leading-none mb-6">
           <span className="block text-5xl md:text-7xl lg:text-8xl font-black text-cream"
             style={{ letterSpacing: "-0.02em" }}>
-            <span className="anim-word" style={{ animationDelay: "300ms" }}>Where</span>
-            {" "}
-            <span className="anim-word" style={{ animationDelay: "450ms" }}>stories</span>
+            <span className="anim-word" style={{ animationDelay: "300ms" }}>Your story</span>
           </span>
-
-          {/* "bridge lives." with SVG hand-drawn underline */}
           <span className="block" style={{ letterSpacing: "-0.02em" }}>
             <span className="relative inline-block" style={{ overflow: "visible" }}>
               <span className="anim-word text-5xl md:text-7xl lg:text-8xl font-black shimmer"
-                style={{ animationDelay: "600ms" }}>
-                bridge lives.
+                style={{ animationDelay: "450ms" }}>
+                needs to be told.
               </span>
-              <svg viewBox="0 0 420 14"
+              <svg viewBox="0 0 520 14"
                 style={{
                   position: "absolute", bottom: "-6px", left: 0,
                   width: "100%", height: "14px", overflow: "visible",
                   pointerEvents: "none",
                 }}>
-                <path d="M2 9 Q70 3 140 8 Q210 13 280 8 Q350 3 418 7"
+                <path d="M2 9 Q90 3 180 8 Q270 13 360 8 Q440 3 518 7"
                   stroke="#F5A623" strokeWidth="2.5" fill="none" strokeLinecap="round"
                   style={{
-                    strokeDasharray: 440,
-                    strokeDashoffset: 440,
+                    strokeDasharray: 540,
+                    strokeDashoffset: 540,
                     animation: "drawUnderlinePath 1.2s ease-out 1.15s forwards",
                     opacity: 0.65,
                   }} />
@@ -399,28 +392,29 @@ export default function Hero() {
           </span>
         </h1>
 
-        <p className="anim-fade-up delay-500 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10"
+        <p className="anim-fade-up delay-500 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-4"
           style={{ color: "#B8AE98", fontWeight: 300 }}>
-          Every failure, every comeback, every quiet victory, someone out there needs to read yours.
-          <br />
-          <span className="text-base" style={{ color: "#6B6354" }}>
-            Kannada, Hindi, Tamil, Bengali, English, or whatever language you think in.
-          </span>
+          The first job that broke you. The failure nobody saw. The comeback that surprised even you.
+        </p>
+        <p className="anim-fade-up delay-500 text-base max-w-xl mx-auto leading-relaxed mb-10"
+          style={{ color: "#6B6354" }}>
+          Write it in Hindi, Kannada, Marathi, Malayalam whatever language you actually think in.
+          Someone out there is waiting to read exactly what you lived through.
         </p>
 
         {/* CTA buttons */}
         <div className="anim-fade-up delay-600 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-          <Link href="/auth?mode=signup"
+          <Link href="/write"
             className="btn-shimmer btn-cta-pulse flex items-center gap-2 text-ink font-semibold px-8 py-4 rounded-full text-base transition-all duration-200 hover:scale-105 active:scale-95 w-full sm:w-auto justify-center"
             style={{ background: "#F5A623", position: "relative", overflow: "hidden" }}
             onClick={handleRipple}>
-            Start writing free
+            Write your story free
             <ArrowRight size={16} />
           </Link>
           <Link href="/explore"
             className="flex items-center gap-2 text-cream-dim hover:text-cream px-8 py-4 rounded-full text-base transition-all w-full sm:w-auto justify-center"
             style={{ border: "1px solid rgba(245,166,35,0.2)" }}>
-            Browse stories
+            Read stories
           </Link>
         </div>
 
@@ -445,8 +439,8 @@ export default function Hero() {
         {/* Stats — count up on scroll into view */}
         <div className="anim-fade-up delay-700 flex items-center justify-center gap-8 sm:gap-16 flex-wrap">
           <StatCounter val={storyCount} label="Stories Published" />
-          <StatCounter val="20+" label="Languages" />
-          <StatCounter val="Free" label="To Read" />
+          <StatCounter val="5" label="Languages" />
+          <StatCounter val="Free" label="Always Free to Read" />
         </div>
       </div>
 

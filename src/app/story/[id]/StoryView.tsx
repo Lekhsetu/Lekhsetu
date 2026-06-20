@@ -118,7 +118,7 @@ export default function StoryView({ id }: { id: string }) {
 
       setStory(data);
       setLoading(false);
-      await incrementStoryView(id, user?.id);
+      await incrementStoryView(id, user?.id, data.translation_group_id);
       setRelated(await fetchRelatedStories(data.category, id, 3, data.translation_group_id));
       setClapTotal(await fetchClapTotal(id));
       const c = await fetchComments(id);

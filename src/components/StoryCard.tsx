@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Clock, ArrowUpRight, MessageCircle, Eye } from "lucide-react";
 import type { Story } from "@/types";
-import { CATEGORIES, LANGUAGES } from "@/constants";
+import { CATEGORIES, LEGACY_CATEGORIES, LANGUAGES } from "@/constants";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -28,8 +28,11 @@ interface StoryCardProps {
 }
 
 export default function StoryCard({ story, featured = false, index = 0, clapTotal = 0, commentCount = 0 }: StoryCardProps) {
-  const cat = CATEGORIES.find(c => c.id === story.category);
+  const cat = CATEGORIES.find(c => c.id === story.category) ?? LEGACY_CATEGORIES.find(c => c.id === story.category);
   const lang = LANGUAGES.find(l => l.code === story.language);
+  // Pull the first non-empty sentence from the story as an emotional hook for the card.
+  const hook = story.excerpt?.trim() ||
+    story.content?.split(/\n+/).find(l => l.trim().length > 30)?.trim().slice(0, 160) || "";
   const authorName = story.profiles?.display_name || "Anonymous";
 
   if (featured) {
@@ -54,9 +57,9 @@ export default function StoryCard({ story, featured = false, index = 0, clapTota
               {story.title}
             </h2>
 
-            {story.excerpt && (
+            {hook && (
               <blockquote className="relative pl-4 mb-5 border-l-2" style={{ borderColor: cat?.color ?? "#e8751a" }}>
-                <p className="text-muted text-sm leading-relaxed italic line-clamp-2">&ldquo;{story.excerpt}&rdquo;</p>
+                <p className="text-muted text-sm leading-relaxed italic line-clamp-2">&ldquo;{hook}&rdquo;</p>
               </blockquote>
             )}
 
@@ -117,8 +120,8 @@ export default function StoryCard({ story, featured = false, index = 0, clapTota
             <h3 className="font-display text-base md:text-lg font-bold text-ink leading-snug mb-1.5 group-hover:text-saffron transition-colors line-clamp-2">
               {story.title}
             </h3>
-            {story.excerpt && (
-              <p className="text-sm text-muted line-clamp-1 mb-3">{story.excerpt}</p>
+            {hook && (
+              <p className="text-sm italic line-clamp-1 mb-3" style={{ color: "#9C8B6F" }}>&ldquo;{hook}&rdquo;</p>
             )}
             <div className="flex items-center gap-3">
               {story.profiles?.avatar_url ? (

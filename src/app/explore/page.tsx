@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal, PenLine, ChevronLeft, ChevronRight, Sparkles, TrendingUp } from "lucide-react";
+import { Search, SlidersHorizontal, PenLine, ChevronLeft, ChevronRight, Sparkles, TrendingUp, Globe } from "lucide-react";
 import Link from "next/link";
 import StoryCard from "@/components/StoryCard";
 import Navbar from "@/components/Navbar";
@@ -9,6 +9,7 @@ import TrendingSidebar from "@/components/TrendingSidebar";
 import { supabase } from "@/lib/supabase";
 import { fetchPublishedStories, fetchFeed, localizeStories, dedupeTranslations } from "@/services/stories";
 import { getPreferredLanguage } from "@/utils/geo";
+import { LANGUAGES } from "@/constants";
 import { fetchClapTotalsBulk } from "@/services/reactions";
 import { fetchCommentCountsBulk } from "@/services/comments";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +23,7 @@ function ExploreContent() {
   const [activeCat, setActiveCat] = useState<string | null>(searchParams.get("cat") ?? null);
   const [sort, setSort] = useState<"for-you" | "latest">("for-you");
   const [stories, setStories] = useState<Story[]>([]);
+  const [preferredLang, setPreferredLang] = useState<string | null>(null);
   const [clapTotals, setClapTotals] = useState<Record<string, number>>({});
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,9 @@ function ExploreContent() {
       : fetchPublishedStories({ category: activeCat });
 
     request.then(async data => {
-      let results: Story[] = await localizeStories(dedupeTranslations(data), getPreferredLanguage());
+      const lang = getPreferredLanguage();
+      setPreferredLang(lang);
+      let results: Story[] = await localizeStories(dedupeTranslations(data), lang);
       if (query.trim()) {
         const lq = query.toLowerCase();
         results = results.filter((s: Story) =>
@@ -160,6 +164,22 @@ function ExploreContent() {
                 ))}
               </div>
             </div>
+
+            {!loading && preferredLang && preferredLang !== "en" && (() => {
+              const lang = LANGUAGES.find(l => l.code === preferredLang);
+              return lang ? (
+                <div className="flex items-center gap-2 mb-5 text-xs font-medium px-3 py-2 rounded-xl"
+                  style={{ background: "rgba(14,116,144,0.06)", border: "1px solid rgba(14,116,144,0.18)", color: "#0e7490" }}>
+                  <Globe size={13} />
+                  <span>Showing stories in <strong>{lang.native}</strong> based on your location</span>
+                  <button
+                    onClick={() => { localStorage.removeItem("lekhsetu_lang"); setPreferredLang(null); setLoading(true); }}
+                    className="ml-auto underline hover:no-underline opacity-70 hover:opacity-100">
+                    Reset
+                  </button>
+                </div>
+              ) : null;
+            })()}
 
             {sort === "for-you" && !loading && stories.length > 0 && (
               <div className="flex items-center gap-2 mb-5 text-xs font-medium px-3 py-2 rounded-xl"

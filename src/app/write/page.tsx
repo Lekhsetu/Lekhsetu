@@ -7,7 +7,7 @@ import {
   ArrowLeft, Eye, Bold, Italic, List, Link2, Quote, Send,
   Sparkles, ChevronDown, EyeOff, Layers, Lightbulb,
   Loader2, X, CheckCheck, FileText, SpellCheck2, Languages,
-  PenLine,
+  PenLine, Info,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { publishStory, updateStory, fetchStoryById } from "@/services/stories";
@@ -561,7 +561,9 @@ function WritePageInner() {
                 Editing
               </span>
             )}
-            <span className="text-xs font-mono hidden sm:block" style={{ color: "#9C8B6F" }}>{wc} words · {rt} min</span>
+            <span title={`${wc} words · ${rt} min read`} className="hidden sm:flex items-center cursor-default" style={{ color: "#B0A48C" }}>
+              <Info size={13} />
+            </span>
             <button onClick={() => setPreview(!preview)}
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full transition-all"
               style={{ border: "1px solid rgba(120,90,50,0.25)", color: "#5A4D38" }}>
@@ -575,8 +577,8 @@ function WritePageInner() {
                 {publishing ? "Saving…" : isEditing ? "Update" : "Publish"}
               </button>
               {!publishing && !category && (title.trim() || body.trim()) && (
-                <span className="text-[10px]" style={{ color: "#9C8B6F" }}>
-                  Pick a category
+                <span title="Pick a category to publish" style={{ color: "#D98C1F", lineHeight: 1 }}>
+                  <Info size={11} />
                 </span>
               )}
             </div>

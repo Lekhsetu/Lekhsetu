@@ -606,7 +606,7 @@ function WritePageInner() {
         {!preview ? (
           <>
             {/* Toolbar */}
-            <div className="sticky z-30 flex items-center gap-1 flex-wrap gap-y-2 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 mb-4"
+            <div className="sticky z-50 flex items-center gap-1 flex-wrap gap-y-2 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 mb-4"
               style={{
                 top: "57px",
                 borderBottom: "1px solid rgba(120,90,50,0.12)",

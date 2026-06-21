@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
 import { LANGUAGES, CATEGORIES } from "@/constants";
 
-const MIN_WORDS = 100;
+
 import type { Story } from "@/types";
 
 // ─── Writing prompts ────────────────────────────────────────────────────────
@@ -470,7 +470,7 @@ function WritePageInner() {
 
   // ── Publish / Update ───────────────────────────────────────────────────────
   const handlePublish = async () => {
-    if (!title.trim() || !body.trim() || !category || wc < MIN_WORDS) return;
+    if (!title.trim() || !body.trim() || !category) return;
     setError(""); setPublishing(true);
     if (!supabase || !user) {
       setError("Not connected. Please sign in and ensure the backend is configured.");
@@ -568,15 +568,15 @@ function WritePageInner() {
               <Eye size={11} />{preview ? "Edit" : "Preview"}
             </button>
             <div className="flex flex-col items-end gap-0.5">
-              <button ref={publishRef} onClick={handlePublish} disabled={!title.trim() || !body.trim() || !category || wc < MIN_WORDS || publishing}
+              <button ref={publishRef} onClick={handlePublish} disabled={!title.trim() || !body.trim() || !category || publishing}
                 className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full font-semibold transition-all disabled:opacity-30"
                 style={{ background: "#F5A623", color: "#2B2014" }}>
                 {publishing ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                 {publishing ? "Saving…" : isEditing ? "Update" : "Publish"}
               </button>
-              {!publishing && (!category || wc < MIN_WORDS) && (title.trim() || body.trim()) && (
+              {!publishing && !category && (title.trim() || body.trim()) && (
                 <span className="text-[10px]" style={{ color: "#9C8B6F" }}>
-                  {!category ? "Pick a category" : `${MIN_WORDS - wc} more words needed`}
+                  Pick a category
                 </span>
               )}
             </div>

@@ -1,65 +1,135 @@
-export default function MaintenancePage() {
-  return (
-    <div style={{
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      background: "#FDFBF7",
-      minHeight: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "40px 24px",
-    }}>
-      <div style={{ textAlign: "center", maxWidth: 520 }}>
+"use client";
 
-        <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-1px", marginBottom: 48, color: "#0B0907" }}>
-          Lekh<span style={{ color: "#F5A623" }}>setu</span>
+import { useEffect, useState } from "react";
+import { PenTool, RefreshCw, Sparkles } from "lucide-react";
+
+const FLOATERS = [
+  { text: "जल्द",        x: "7%",  y: "16%", size: "text-3xl", fdur: 7,  fdel: 0   },
+  { text: "ಶೀಘ್ರದಲ್ಲೇ", x: "80%", y: "12%", size: "text-2xl", fdur: 9,  fdel: 2   },
+  { text: "लवकरच",      x: "84%", y: "70%", size: "text-2xl", fdur: 8,  fdel: 4   },
+  { text: "ഉടൻ",         x: "6%",  y: "74%", size: "text-3xl", fdur: 11, fdel: 1   },
+  { text: "soon",        x: "50%", y: "90%", size: "text-lg",  fdur: 10, fdel: 3   },
+];
+
+const RECHECK_SECONDS = 30;
+
+export default function MaintenancePage() {
+  const [secondsLeft, setSecondsLeft] = useState(RECHECK_SECONDS);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          window.location.reload();
+          return RECHECK_SECONDS;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <main className="relative min-h-screen flex items-center justify-center overflow-hidden bg-ink px-6 py-16">
+      {/* Ambient breathing glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full anim-breathe pointer-events-none"
+        style={{ background: "radial-gradient(circle, rgba(245,166,35,0.06) 0%, transparent 70%)" }} />
+
+      {/* Slow-spinning dashed rings */}
+      <div className="absolute top-1/2 left-1/2 pointer-events-none hidden md:block"
+        style={{ transform: "translate(-50%,-52%)", width: 560, height: 560 }}>
+        <svg viewBox="0 0 560 560" className="w-full h-full" style={{ animation: "mandalaSpin 90s linear infinite", opacity: 0.06 }}>
+          <circle cx="280" cy="280" r="260" stroke="#F5A623" strokeWidth="1" fill="none" strokeDasharray="2 10" />
+          <circle cx="280" cy="280" r="220" stroke="#F5A623" strokeWidth="0.5" fill="none" strokeDasharray="6 16" />
+        </svg>
+      </div>
+
+      {/* Floating "soon" in the site's languages */}
+      {FLOATERS.map((f, i) => (
+        <span key={i}
+          className={`absolute font-display italic select-none hidden sm:block ${f.size}`}
+          style={{
+            left: f.x, top: f.y,
+            color: "rgba(176,162,130,0.16)",
+            animation: `floaterFade ${f.fdur}s ease-in-out ${f.fdel}s infinite, floatDrift 8s ease-in-out ${f.fdel * 0.5}s infinite`,
+          }}>
+          {f.text}
+        </span>
+      ))}
+
+      {/* Main card */}
+      <div className="relative z-10 text-center max-w-xl mx-auto anim-fade-scale">
+        <div className="font-display text-3xl font-black anim-ink-bleed mb-10" style={{ letterSpacing: "-0.5px" }}>
+          <span className="text-cream">Lekh</span><span className="text-gold">setu</span>
         </div>
 
-        <div style={{ fontSize: 64, marginBottom: 32, lineHeight: 1 }}>✍️</div>
+        <div className="anim-stamp inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
+          style={{ border: "1px solid rgba(245,166,35,0.25)", background: "rgba(245,166,35,0.07)" }}>
+          <Sparkles size={11} className="text-gold" />
+          <span className="text-xs tracking-widest uppercase text-gold">Scheduled Maintenance</span>
+        </div>
 
-        <h1 style={{
-          fontSize: 30,
-          fontWeight: 800,
-          color: "#0B0907",
-          marginBottom: 16,
-          lineHeight: 1.3,
-        }}>
-          Something better is coming
+        {/* Pen writing an ink trail */}
+        <div className="relative w-16 h-16 mx-auto mb-8 flex items-center justify-center">
+          <div style={{ animation: "penWrite 3.2s ease-in-out infinite" }}>
+            <PenTool size={38} className="text-gold" strokeWidth={1.5} />
+          </div>
+          <svg width="96" height="24" viewBox="0 0 96 24" className="absolute -bottom-2 left-1/2 -translate-x-1/2" style={{ overflow: "visible" }}>
+            <path d="M2 12 Q24 3 48 12 T94 12" stroke="#F5A623" strokeWidth="1.5" fill="none"
+              strokeDasharray="120" style={{ animation: "inkTrail 3.2s ease-in-out infinite" }} />
+          </svg>
+        </div>
+
+        <h1 className="font-display font-black leading-tight mb-5" style={{ fontSize: "clamp(2rem,5vw,3.2rem)" }}>
+          <span className="block anim-word text-cream" style={{ animationDelay: "150ms" }}>We&apos;re rewriting</span>
+          <span className="block anim-word shimmer" style={{ animationDelay: "320ms" }}>a few chapters.</span>
         </h1>
 
-        <p style={{ fontSize: 17, color: "#6B6354", lineHeight: 1.7, marginBottom: 12 }}>
-          We are working hard behind the scenes to bring you a much better Lekhsetu.
+        <p className="anim-fade-up delay-400 text-base md:text-lg leading-relaxed mb-2" style={{ color: "#B8AE98", fontWeight: 300 }}>
+          Lekhsetu is offline for a short while as we sharpen a few things behind the scenes.
+        </p>
+        <p className="anim-fade-up delay-500 text-sm md:text-base leading-relaxed mb-10 text-muted">
+          Every story you left here is safe. We&apos;ll be back before you finish your chai.
         </p>
 
-        <p style={{ fontSize: 17, color: "#6B6354", lineHeight: 1.7, marginBottom: 40 }}>
-          The site will be back up very soon. Thank you for your patience.
-        </p>
-
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 10,
-          background: "rgba(245,166,35,0.1)",
-          border: "1px solid rgba(245,166,35,0.3)",
-          borderRadius: 14,
-          padding: "14px 24px",
-        }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#F5A623", display: "inline-block", animation: "pulse 1.5s infinite" }} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#B8851A" }}>Upgrade in progress</span>
+        <div className="anim-fade-up delay-600 w-full max-w-xs mx-auto h-1.5 rounded-full overflow-hidden mb-6"
+          style={{ background: "rgba(245,166,35,0.1)" }}>
+          <div className="h-full w-[30%] rounded-full"
+            style={{ background: "linear-gradient(90deg, transparent, #F5A623, #FFD080, #F5A623, transparent)", animation: "progressSlide 1.7s ease-in-out infinite" }} />
         </div>
 
-        <p style={{ marginTop: 48, fontSize: 13, color: "#B5A898" }}>
-          lekhsetu.com
+        <div className="anim-fade-up delay-700 flex flex-wrap items-center justify-center gap-3 mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+            style={{ border: "1px solid rgba(245,166,35,0.25)", background: "rgba(245,166,35,0.06)" }}>
+            <span className="relative flex w-2 h-2">
+              <span className="absolute inline-flex w-full h-full rounded-full anim-ping" style={{ background: "#F5A623" }} />
+              <span className="relative inline-flex w-2 h-2 rounded-full" style={{ background: "#F5A623" }} />
+            </span>
+            <span className="text-xs font-semibold text-gold">Upgrade in progress</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-cream-dim text-xs"
+            style={{ border: "1px solid rgba(245,166,35,0.15)" }}>
+            <RefreshCw size={12} className="text-gold" style={{ animation: "mandalaSpin 2s linear infinite" }} />
+            Rechecking in {secondsLeft}s
+          </div>
+        </div>
+
+        <div className="h-rule max-w-[220px] mx-auto mb-6" />
+
+        <p className="anim-fade-in delay-800 text-xs text-cream-dim">
+          Something urgent? Write to <span className="text-gold">support@lekhsetu.com</span>
         </p>
+        <p className="anim-fade-in delay-800 text-xs mt-3" style={{ color: "#B5A898" }}>lekhsetu.com</p>
       </div>
 
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
+        @keyframes progressSlide {
+          0%   { transform: translateX(-140%); }
+          50%  { transform: translateX(180%); }
+          100% { transform: translateX(-140%); }
         }
       `}</style>
-    </div>
+    </main>
   );
 }

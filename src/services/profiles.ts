@@ -128,7 +128,7 @@ export async function removeAvatar(userId: string) {
 }
 
 /**
- * Stories for a profile's public story grid — collapses multi-language
+ * Stories for a profile's public story grid, collapses multi-language
  * translations of the same article down to one card, swapped to the
  * viewer's preferred language when a matching translation exists.
  */

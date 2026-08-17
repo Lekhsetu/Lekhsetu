@@ -645,7 +645,7 @@ export default function SettingsPage() {
                   </div>
                   <p className="text-xs mb-4" style={{ color: "#3A3028" }}>
                     Answer both questions so you can recover your account if you ever forget your password or PIN.
-                    Only a secured hash of your answers is stored — never the answers themselves.
+                    Only a secured hash of your answers is stored, never the answers themselves.
                   </p>
 
                   <div className="space-y-3 mb-3">
@@ -694,7 +694,7 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <p className="text-xs mb-4" style={{ color: "#3A3028" }}>
-                    Answer your two security questions, then change your PIN, your password, or both — whichever you need.
+                    Answer your two security questions, then change your PIN, your password, or both, whichever you need.
                   </p>
 
                   {changeStep === "verify" ? (

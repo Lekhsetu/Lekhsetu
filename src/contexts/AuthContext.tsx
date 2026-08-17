@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) {
-        // Refresh token is invalid or revoked — clear the stale session from
+        // Refresh token is invalid or revoked: clear the stale session from
         // storage so the error doesn't recur on every subsequent page load.
         supabase?.auth.signOut();
         setLoading(false);

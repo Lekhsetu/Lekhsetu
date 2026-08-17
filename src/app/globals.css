@@ -409,7 +409,7 @@ body::after {
 
 /* ─── HUMAN ANIMATION KEYFRAMES ──────────────────────────────── */
 
-/* Writing hand sway — mimics natural back-and-forth writing rhythm */
+/* Writing hand sway: mimics natural back-and-forth writing rhythm */
 @keyframes penWrite {
   0%   { transform: translate(0px,  0px)  rotate(0deg);    }
   18%  { transform: translate(15px, 2px)  rotate(-0.9deg); }
@@ -420,7 +420,7 @@ body::after {
   100% { transform: translate(0px,  0px)  rotate(0deg);    }
 }
 
-/* Ink trail — draws out then fades */
+/* Ink trail: draws out then fades */
 @keyframes inkTrail {
   0%        { stroke-dashoffset: 120; opacity: 0;    }
   6%        { opacity: 0.55;                         }

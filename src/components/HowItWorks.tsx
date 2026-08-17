@@ -4,9 +4,9 @@ import { PenLine, Users, Sparkles, Globe2 } from "lucide-react";
 
 const STEPS = [
   {n:"01",icon:PenLine,title:"Write from experience",desc:"No credentials needed. Just your story, your insight, your truth, written the way only you can. Free forever.",c:"#F5A623"},
-  {n:"02",icon:Users,  title:"Reach the right readers",desc:"Lekhsetu surfaces your writing to people who genuinely need it, by resonance, not by viral chasing.",c:"#5BA3E0"},
+  {n:"02",icon:Users,  title:"Reach the right readers",desc:"Lekhsetu learns what you actually connect with, by category and language, and quietly shapes what you see next. No follower count to chase, no post to go viral.",c:"#5BA3E0"},
   {n:"03",icon:Sparkles,title:"Build your voice",desc:"A profile that grows with you. Track your impact. Hear from readers whose lives you've touched.",c:"#FCD34D"},
-  {n:"04",icon:Globe2, title:"Become part of something global",desc:"Stories cross borders. Lekhsetu connects writers and readers across 190+ countries and a dozen languages.",c:"#6DBF67"},
+  {n:"04",icon:Globe2, title:"Write once, read everywhere",desc:"Publish in Hindi, Kannada, Marathi, Malayalam or English, and your story can be read in any of them without you lifting a finger.",c:"#6DBF67"},
 ];
 
 function Step({s,i,align}:{s:typeof STEPS[0];i:number;align:"left"|"right"}) {

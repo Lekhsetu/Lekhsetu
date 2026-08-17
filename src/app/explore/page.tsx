@@ -79,7 +79,7 @@ function ExploreContent() {
       <div className="pt-24 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
         <div className="mb-8">
           <h1 className="font-display text-4xl md:text-5xl font-black text-ink mb-2">Explore stories</h1>
-          <p className="text-muted">Real first jobs, failures, heartbreaks, and comebacks — told by people who lived them.</p>
+          <p className="text-muted">Real first jobs, failures, heartbreaks, and comebacks, told by people who lived them.</p>
         </div>
 
         <div className="relative mb-6">
@@ -185,7 +185,7 @@ function ExploreContent() {
               <div className="flex items-center gap-2 mb-5 text-xs font-medium px-3 py-2 rounded-xl"
                 style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.18)", color: "#B8851A" }}>
                 {user ? <Sparkles size={13} /> : <TrendingUp size={13} />}
-                <span>{user ? "Personalized for you — ranked by what you read and react to" : "Trending now — what readers are engaging with"}</span>
+                <span>{user ? "Personalized for you, ranked by what you read and react to" : "Trending now: what readers are engaging with"}</span>
               </div>
             )}
 

@@ -163,8 +163,8 @@ export async function fetchFeed({
 
 /**
  * Collapses multi-language copies of the same article (sharing a
- * translation_group_id) down to a single entry — the earliest-created
- * ("primary") copy — so each article appears as one card in feeds.
+ * translation_group_id) down to a single entry, the earliest-created
+ * ("primary") copy, so each article appears as one card in feeds.
  */
 export function dedupeTranslations(stories: Story[]): Story[] {
   const primaryByGroup = new Map<string, Story>();
@@ -190,7 +190,7 @@ export function dedupeTranslations(stories: Story[]): Story[] {
 /**
  * Given a list of stories, swaps any story that has a translation_group_id
  * for its sibling published in the reader's preferred language, when one
- * exists — so a Kannada reader sees the Kannada version of a story a creator
+ * exists, so a Kannada reader sees the Kannada version of a story a creator
  * also published in Hindi, etc.
  */
 export async function localizeStories(stories: Story[], preferredLanguage: string | null) {
@@ -326,7 +326,7 @@ export async function deleteStory(storyId: string, translationGroupId?: string |
   return { error };
 }
 
-/** All stories (published + drafts) for the dashboard — minimal select, no profile join needed. */
+/** All stories (published + drafts) for the dashboard, minimal select, no profile join needed. */
 export async function fetchMyStories(authorId: string): Promise<Pick<Story, "id" | "title" | "category" | "language" | "read_time" | "published" | "views_count" | "created_at" | "anonymous" | "excerpt">[]> {
   if (!supabase) return [];
   const { data, error } = await supabase

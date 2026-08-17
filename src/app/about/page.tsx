@@ -39,13 +39,14 @@ export default function AboutPage() {
           <h2 className="font-display text-2xl font-bold text-ink mb-4">What we&rsquo;re building</h2>
           <div className="space-y-3 text-sm leading-7 text-muted">
             <p>
-              Most of the internet rewards opinions, takes, and hot content. Lekhsetu is built around
-              something slower and more useful: <strong className="text-ink">first-hand experience</strong>.
+              Most of the internet rewards hot takes and whatever the algorithm decides to push.
+              Lekhsetu is built around something slower: <strong className="text-ink">writing that means something</strong>,
+              told in 110 words, in the language you actually think in.
             </p>
             <p>
-              Every story on the platform is written by someone who actually lived it: a career change,
-              a difficult diagnosis, a startup that failed, a small habit that changed everything. Readers
-              come here to learn from people who&rsquo;ve already walked the path they&rsquo;re on.
+              A career change sits next to a short poem, next to a science explainer, next to a piece
+              of fiction, next to a hard-earned life lesson. Different categories, same rule: it has to
+              be genuinely yours, not generated, not padded, not written to please a feed.
             </p>
             <p>
               Writers can publish under their name or anonymously, organize stories by category, react

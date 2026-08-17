@@ -107,7 +107,7 @@ export async function fetchUserInsights(authorId: string): Promise<{ stories: St
   }, { ...empty });
 
   // Collapse multi-language translations of the same article into a single
-  // row — combining their stats — so each article appears once with one
+  // row, combining their stats, so each article appears once with one
   // Edit/Delete action that applies to the whole group.
   const grouped: StoryInsight[] = [];
   const byGroup = new Map<string, StoryInsight>();

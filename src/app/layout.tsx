@@ -6,7 +6,6 @@ import GeoPrompt from "@/components/GeoPrompt";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-const adsenseClientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -14,7 +13,6 @@ export const metadata: Metadata = {
   description: "Real first jobs, failures, heartbreaks, and comebacks, written by the people who lived them. Write in your language. Read for free.",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Lekhsetu" },
-  ...(adsenseClientId ? { other: { "google-adsense-account": adsenseClientId } } : {}),
   openGraph: {
     type: "website",
     siteName: "Lekhsetu",
@@ -37,14 +35,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        {adsenseClientId && (
-          // eslint-disable-next-line @next/next/no-sync-scripts
-          <script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
-            crossOrigin="anonymous"
-          />
-        )}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -82,7 +72,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Script>
           </>
         )}
-        {/* AdSense must be a plain script — Next.js Script component adds data-nscript which AdSense rejects */}
       </body>
     </html>
   );

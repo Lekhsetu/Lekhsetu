@@ -6,7 +6,7 @@ import { fetchCategoryCounts } from "@/services/stories";
 const CATS = [
   { icon: Briefcase,  label: "Career",    desc: "Job hunts, pivots, promotions, side hustles",     c: "#5BA3E0",
     ids: ["career", "job", "firstjob", "layoff", "entrepreneurship", "startup", "success", "failure"] },
-  { icon: Brain,      label: "Growth",    desc: "Lessons learned the hard way — exams, skills, comebacks",    c: "#F5A623",
+  { icon: Brain,      label: "Growth",    desc: "Lessons learned the hard way: exams, skills, comebacks",    c: "#F5A623",
     ids: ["knowledge", "tech", "education", "exams", "studentlife", "books", "history", "science"] },
   { icon: Heart,      label: "Life",      desc: "Relationships, health, personal growth, grief",   c: "#F87171",
     ids: ["life", "health", "relationships", "family", "love", "friendship", "heartbreak", "marriage",
@@ -96,7 +96,7 @@ export default function Categories() {
                 card.style.boxShadow  = "";
               }}
             >
-              {/* Liquid fill — rises from bottom */}
+              {/* Liquid fill: rises from bottom */}
               <div
                 className="liquid-fill absolute inset-0 rounded-2xl pointer-events-none"
                 style={{

@@ -18,7 +18,7 @@ const LINKS: Record<string, { label: string; href: string; soon?: boolean }[]> =
   ],
 };
 
-// Round to 4dp — prevents floating-point divergence between Node.js (server)
+// Round to 4dp: prevents floating-point divergence between Node.js (server)
 // and browser V8 (client) when computing trig coordinates. Same fix as Hero.tsx.
 const p4 = (n: number) => parseFloat(n.toFixed(4));
 
@@ -92,7 +92,7 @@ export default function Footer() {
           <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full"
             style={{ border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
 
-            {/* Indian flag — three horizontal stripes + Ashoka Chakra */}
+            {/* Indian flag: three horizontal stripes + Ashoka Chakra */}
             <div className="relative flex-shrink-0 rounded-sm overflow-hidden"
               style={{ width: 22, height: 15, boxShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>
               {/* Saffron */}

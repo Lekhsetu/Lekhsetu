@@ -63,7 +63,7 @@ export async function lookupTranslationMemory(
 }
 
 // Rebuild translated content by substituting known sentences from memory.
-// Unknown sentences are left in the original language as placeholders —
+// Unknown sentences are left in the original language as placeholders,
 // the caller should replace those via AI.
 export function assembleFromMemory(
   content: string,

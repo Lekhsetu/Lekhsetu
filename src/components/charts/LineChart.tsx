@@ -4,7 +4,7 @@ import { useState } from "react";
 
 export type ChartPoint = { label: string; value: number };
 
-/** Lightweight interactive SVG line/area chart for small time-series — no charting library needed. */
+/** Lightweight interactive SVG line/area chart for small time-series, no charting library needed. */
 export default function LineChart({ data, color = "#F5A623", height = 100 }: { data: ChartPoint[]; color?: string; height?: number }) {
   const [active, setActive] = useState<number | null>(null);
 

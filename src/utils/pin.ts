@@ -1,5 +1,5 @@
 // 6-digit quick-unlock PIN, stored locally on this device only.
-// Not a server-side credential — it just re-locks the UI for an
+// Not a server-side credential: it just re-locks the UI for an
 // already-authenticated session on shared/returning devices.
 
 const PIN_PREFIX = "lekhsetu_pin_";
@@ -79,7 +79,7 @@ export function generateSalt(): string {
 
 /**
  * Salted SHA-256 hash of a security-question answer, used for server-side
- * account recovery. Only the hash is ever sent/stored — the plaintext
+ * account recovery. Only the hash is ever sent/stored, the plaintext
  * answer never leaves the device.
  */
 export async function hashSecurityAnswer(salt: string, answer: string): Promise<string> {

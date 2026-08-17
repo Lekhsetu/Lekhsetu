@@ -74,7 +74,7 @@ export default function CTA() {
         </div>
 
         <p className="mt-8 text-xs" style={{ color: "#3A3028" }}>
-          Free to read · Free account to write · 20+ languages supported
+          Free to read · Free account to write · 5 languages, more on the way
         </p>
       </div>
     </section>

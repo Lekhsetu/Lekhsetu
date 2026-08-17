@@ -31,10 +31,10 @@ function sanitizeJsonControlChars(raw: string): string {
 }
 
 // ─── Basic per-IP rate limiting ──────────────────────────────────────────────
-// In-memory only — resets on redeploy/cold start and isn't shared across
+// In-memory only: resets on redeploy/cold start and isn't shared across
 // serverless instances, but stops a single client from hammering the free
 // AI providers and burning through quota.
-const RATE_LIMIT = 60; // requests — raised to accommodate multi-language publish batches
+const RATE_LIMIT = 60; // requests, raised to accommodate multi-language publish batches
 const RATE_WINDOW_MS = 10 * 60 * 1000; // per 10 minutes
 const requestLog = new Map<string, number[]>();
 
@@ -57,29 +57,41 @@ function getClientIp(req: NextRequest): string {
   return forwarded?.split(",")[0]?.trim() || "unknown";
 }
 
-const PROMPTS: Record<string, (content: string, title: string, language: string) => string> = {
-  improve: (content, title, language) =>
-    `You are a writing editor. Improve the following story to make it more engaging, emotionally resonant, and well-structured. Keep the author's voice. Do not add fictional elements. The story is written in ${languageName(language)} — write your entire response in ${languageName(language)} only, do not translate it to any other language. Story title: "${title}"\n\nStory:\n${content}\n\nReturn only the improved story text, in ${languageName(language)}.`,
+// Categories where the story is expected to be invented, not lived, so the
+// AI editor should never be told to avoid fictional elements.
+const FICTION_CATEGORIES = new Set(["fiction", "writing"]);
+
+const PROMPTS: Record<string, (content: string, title: string, language: string, category: string) => string> = {
+  improve: (content, title, language, category) => {
+    const guardrail = FICTION_CATEGORIES.has(category)
+      ? "This is a fiction piece: improve the craft, pacing, and imagery, but keep the plot and characters the author invented."
+      : "This is a real, lived story: sharpen the writing but never invent events, people, or details that didn't happen.";
+    return `You are a writing editor. Improve the following story to make it more engaging and well-structured. Keep the author's voice. ${guardrail} The story is written in ${languageName(language)}: write your entire response in ${languageName(language)} only, do not translate it to any other language. Story title: "${title}"\n\nStory:\n${content}\n\nReturn only the improved story text, in ${languageName(language)}.`;
+  },
 
   excerpt: (content, title, language) =>
-    `Write a compelling 1-2 sentence excerpt/teaser for this story that would make someone want to read it. The story is written in ${languageName(language)} — write the excerpt in ${languageName(language)} only. Story title: "${title}"\n\nStory:\n${content.slice(0, 1000)}\n\nReturn only the excerpt, in ${languageName(language)}.`,
+    `Write a compelling 1-2 sentence excerpt/teaser for this story that would make someone want to read it. The story is written in ${languageName(language)}: write the excerpt in ${languageName(language)} only. Story title: "${title}"\n\nStory:\n${content.slice(0, 1000)}\n\nReturn only the excerpt, in ${languageName(language)}.`,
 
   grammar: (content, _title, language) =>
-    `Fix all grammar, spelling, and punctuation errors in the following text. The text is written in ${languageName(language)} — keep it in ${languageName(language)}, do not translate it. Keep the meaning and voice exactly the same. Return only the corrected text.\n\n${content}`,
+    `Fix all grammar, spelling, and punctuation errors in the following text. The text is written in ${languageName(language)}: keep it in ${languageName(language)}, do not translate it. Keep the meaning and voice exactly the same. Return only the corrected text.\n\n${content}`,
 
   translate: (content, title, language) =>
     language === "en"
       ? `Translate the following story from English to Hindi. Keep the emotional tone and meaning intact. Story title: "${title}"\n\nStory:\n${content}\n\nReturn only the translated text.`
       : `Translate the following story from ${languageName(language)} to English. Keep the emotional tone and meaning intact. Story title: "${title}"\n\nStory:\n${content}\n\nReturn only the translated text.`,
 
-  continue: (content, title, language) =>
-    `You are a creative writing assistant. Continue the following story naturally for about 100-150 words, matching the author's tone, voice and style. Do not repeat or summarize what's already written. The story is written in ${languageName(language)} — continue writing in ${languageName(language)} only. Story title: "${title}"\n\nStory so far:\n${content}\n\nReturn only the continuation text.`,
+  continue: (content, title, language, category) => {
+    const guardrail = FICTION_CATEGORIES.has(category)
+      ? "Continue the plot naturally, staying true to the world and characters already established."
+      : "Continue only in the voice of someone reflecting on their own real experience: do not invent new events that didn't happen.";
+    return `You are a writing assistant. Continue the following story naturally for about 100-150 words, matching the author's tone, voice and style. Do not repeat or summarize what's already written. ${guardrail} The story is written in ${languageName(language)}: continue writing in ${languageName(language)} only. Story title: "${title}"\n\nStory so far:\n${content}\n\nReturn only the continuation text.`;
+  },
 
   localize: (content, _title, language) =>
     `Translate the following short writing prompt into ${languageName(language)}. Keep it natural, concise, and in the same tone. Return only the translation, with no quotes or extra commentary.\n\n${content}`,
 
   translate_live: (content, _title, language) =>
-    `Translate the following English text into natural, everyday ${languageName(language)}, written in ${languageName(language)}'s native script. Preserve the tone and punctuation. Proper nouns can stay as-is. Return only the translation — no quotes, no notes, no romanization.\n\n${content}`,
+    `Translate the following English text into natural, everyday ${languageName(language)}, written in ${languageName(language)}'s native script. Preserve the tone and punctuation. Proper nouns can stay as-is. Return only the translation, with no quotes, no notes, no romanization.\n\n${content}`,
 };
 
 // ─── Free AI providers, tried in order. Each returns null if not configured ──
@@ -105,7 +117,7 @@ async function callGroq(prompt: string): Promise<string | null> {
   return json.choices?.[0]?.message?.content ?? null;
 }
 
-// Fast 8B model for read-time translation — low latency, good quality for Indian languages.
+// Fast 8B model for read-time translation: low latency, good quality for Indian languages.
 async function callGroqFast(prompt: string): Promise<string | null> {
   const key = process.env.GROQ_API_KEY;
   if (!key) return null;
@@ -133,7 +145,7 @@ async function callGroqFast(prompt: string): Promise<string | null> {
   return json.choices?.[0]?.message?.content ?? null;
 }
 
-// Cerebras — dedicated AI silicon, very fast 70B inference, OpenAI-compatible API.
+// Cerebras: dedicated AI silicon, very fast 70B inference, OpenAI-compatible API.
 async function callCerebras(prompt: string): Promise<string | null> {
   const key = process.env.CEREBRAS_API_KEY;
   if (!key) return null;
@@ -161,7 +173,7 @@ async function callCerebras(prompt: string): Promise<string | null> {
   return json.choices?.[0]?.message?.content ?? null;
 }
 
-// Sarvam AI language codes — maps our 2-letter codes to Sarvam's BCP-47 format.
+// Sarvam AI language codes: maps our 2-letter codes to Sarvam's BCP-47 format.
 const SARVAM_LANG: Record<string, string> = {
   hi: "hi-IN", mr: "mr-IN", ta: "ta-IN", te: "te-IN",
   kn: "kn-IN", ml: "ml-IN", gu: "gu-IN", bn: "bn-IN",
@@ -177,7 +189,7 @@ async function sarvamTranslateSegment(text: string, src: string, tgt: string): P
   const tgtCode = SARVAM_LANG[tgt];
   if (!srcCode || !tgtCode) return null; // unsupported language pair
 
-  // Sarvam handles up to ~1000 chars reliably — split on paragraph boundaries.
+  // Sarvam handles up to ~1000 chars reliably, split on paragraph boundaries.
   const CHUNK = 900;
   const chunks: string[] = [];
   let remaining = text;
@@ -233,7 +245,7 @@ async function callOpenRouter(prompt: string): Promise<string | null> {
   return json.choices?.[0]?.message?.content ?? null;
 }
 
-// Second OpenRouter call using a different free model — avoids hitting the same upstream rate limit.
+// Second OpenRouter call using a different free model, avoids hitting the same upstream rate limit.
 async function callOpenRouterAlt(prompt: string): Promise<string | null> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) return null;
@@ -275,7 +287,7 @@ async function generate(prompt: string): Promise<{ result?: string; error?: stri
       lastError = err instanceof Error ? err.message : String(err);
       continue;
     }
-    if (result === null) continue; // provider not configured — skip silently
+    if (result === null) continue; // provider not configured, skip silently
     configured = true;
     if (result.trim()) return { result: result.trim() };
   }
@@ -298,14 +310,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests. Please wait a bit and try again." }, { status: 429 });
   }
 
-  let body: { action: string; content: string; title: string; excerpt?: string; language: string; targetLanguage?: string; memoryContext?: string };
+  let body: { action: string; content: string; title: string; excerpt?: string; language: string; category?: string; targetLanguage?: string; memoryContext?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const { action, content, title = "", excerpt = "", language = "en", targetLanguage, memoryContext } = body;
+  const { action, content, title = "", excerpt = "", language = "en", category = "", targetLanguage, memoryContext } = body;
   if (!content?.trim()) {
     return NextResponse.json({ error: "Invalid action or empty content" }, { status: 400 });
   }
@@ -325,7 +337,7 @@ export async function POST(req: NextRequest) {
       `{"title":"<translated title>","excerpt":"<translated excerpt>","content":"<translated content>"}\n\n` +
       `Title: ${title}\nExcerpt: ${excerpt}\nContent:\n${trimmedContent}`;
 
-    // Try Sarvam first for Indian language pairs — dedicated model, best quality.
+    // Try Sarvam first for Indian language pairs: dedicated model, best quality.
     console.log(`[translate_to] trying Sarvam: ${language} → ${targetLanguage}`);
     try {
       const [tTitle, tExcerpt, tContent] = await Promise.all([
@@ -337,7 +349,7 @@ export async function POST(req: NextRequest) {
         console.log("[translate_to] Sarvam succeeded");
         return NextResponse.json({ result: { title: tTitle, excerpt: tExcerpt ?? "", content: tContent } });
       }
-      console.log("[translate_to] Sarvam skipped — unsupported language pair or empty response");
+      console.log("[translate_to] Sarvam skipped: unsupported language pair or empty response");
     } catch (err) {
       console.error("[translate_to] Sarvam threw:", err);
     }
@@ -379,7 +391,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!configured) return NextResponse.json({ error: "AI not configured." }, { status: 503 });
-    return NextResponse.json({ error: "Translation failed — all providers unavailable." }, { status: 502 });
+    return NextResponse.json({ error: "Translation failed, all providers unavailable." }, { status: 502 });
   }
 
   const promptFn = PROMPTS[action];
@@ -387,7 +399,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  const prompt = promptFn(content.slice(0, 4000), title, language);
+  const prompt = promptFn(content.slice(0, 4000), title, language, category);
   const gen = await generate(prompt);
   if (gen.error) return NextResponse.json({ error: gen.error }, { status: gen.status });
   return NextResponse.json({ result: gen.result });

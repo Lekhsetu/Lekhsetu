@@ -12,7 +12,7 @@ export default function CustomCursor() {
   const raf     = useRef(0);
 
   useEffect(() => {
-    // Skip on the editor — the resize "bounce" on the ring lags behind the
+    // Skip on the editor: the resize "bounce" on the ring lags behind the
     // mouse and looks like a stuck circle while editing text. Restore the
     // native cursor here since the custom one won't be rendered.
     if (window.matchMedia("(hover: none)").matches) {

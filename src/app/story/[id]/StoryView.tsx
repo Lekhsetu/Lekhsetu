@@ -125,7 +125,7 @@ export default function StoryView({ id }: { id: string }) {
       setComments(c);
       setCommentsLoading(false);
 
-      // No published version in the reader's regional language — serve from
+      // No published version in the reader's regional language: serve from
       // cache if available, otherwise translate via AI and cache the result.
       if (preferred && preferred !== data.language) {
         const cached = await getCachedTranslation(id, preferred);
@@ -165,7 +165,7 @@ export default function StoryView({ id }: { id: string }) {
         }
       }
     });
-    // user is intentionally excluded — re-running on auth resolve would double-count the view
+    // user is intentionally excluded, re-running on auth resolve would double-count the view
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -175,7 +175,7 @@ export default function StoryView({ id }: { id: string }) {
     setTranslation(null);
   }, [id]);
 
-  // Load the current user's clap count separately — avoids re-fetching
+  // Load the current user's clap count separately, avoids re-fetching
   // the whole story (and double-counting the view) when auth resolves.
   useEffect(() => {
     if (!supabase || !user) return;
@@ -382,7 +382,7 @@ export default function StoryView({ id }: { id: string }) {
           </button>
           <ShareButton
             title={story.title}
-            text={`"${story.title}" on Lekhsetu — read it for free.`}
+            text={`"${story.title}" on Lekhsetu. Read it for free.`}
             url={typeof window !== "undefined" ? window.location.href : ""}
             showWhatsApp
             className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition-colors hover:border-saffron hover:text-saffron ml-auto"

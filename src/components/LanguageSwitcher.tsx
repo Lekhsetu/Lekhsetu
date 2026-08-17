@@ -61,7 +61,7 @@ export default function LanguageSwitcher({
     setTranslatingCode(code);
     onTranslating?.(code);
 
-    // Layer 1: full story cache — instant, zero API cost
+    // Layer 1: full story cache, instant, zero API cost
     if (storyId) {
       const cached = await getCachedTranslation(storyId, code);
       if (cached) {
@@ -78,7 +78,7 @@ export default function LanguageSwitcher({
       : new Map<string, string>();
     const coverage = sentences.length > 0 ? memoryMap.size / sentences.length : 0;
 
-    // High coverage (≥80%) — assemble content from memory, only call AI for title+excerpt
+    // High coverage (≥80%): assemble content from memory, only call AI for title+excerpt
     if (coverage >= 0.8 && sentences.length >= 5) {
       try {
         const assembledContent = assembleFromMemory(storyContent, sentences, memoryMap);
@@ -109,7 +109,7 @@ export default function LanguageSwitcher({
       } catch { /* fall through to full AI */ }
     }
 
-    // Layer 3: full AI translation — inject memory hints for consistency
+    // Layer 3: full AI translation, inject memory hints for consistency
     const memoryHint = buildMemoryContext(memoryMap);
     try {
       const res = await fetch("/api/ai", {

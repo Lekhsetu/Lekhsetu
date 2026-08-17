@@ -130,7 +130,7 @@ function WritePageInner() {
   const visibilityRef = useRef<HTMLButtonElement>(null);
   const langPickerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-translate (English in, selected language out) state — when a
+  // Auto-translate (English in, selected language out) state: when a
   // non-English language is selected, newly-typed English text is translated
   // into that language's native script automatically as the user writes.
   const [titleTranslating, setTitleTranslating] = useState(false);
@@ -276,7 +276,7 @@ function WritePageInner() {
 
   // Translates the text typed since `anchorRef`, in place, and advances the anchor.
   // `gen` guards against a switch of writing language while a translation is
-  // in flight — without it, a stale response could overwrite the freshly
+  // in flight: without it, a stale response could overwrite the freshly
   // cleared editor, and the busy flag would be left stuck "true" forever.
   const runTranslate = async (
     value: string,
@@ -292,7 +292,7 @@ function WritePageInner() {
     const segment = value.slice(anchor);
     if (!segment.trim()) return;
     if (!/[a-zA-Z]/.test(segment)) {
-      // Already in the target script (e.g. typed via a native keyboard) — nothing to translate.
+      // Already in the target script (e.g. typed via a native keyboard), nothing to translate.
       anchorRef.current = value.length;
       return;
     }
@@ -301,7 +301,7 @@ function WritePageInner() {
     const translated = await translateSegment(segment.trim());
     busyRef.current = false;
     setTranslating(false);
-    if (gen !== translateGenRef.current) return; // language changed mid-translation — discard
+    if (gen !== translateGenRef.current) return; // language changed mid-translation, discard
 
     const suffix = /[ \n]$/.test(segment) ? segment.slice(-1) : "";
     setValue(prev => {
@@ -323,7 +323,7 @@ function WritePageInner() {
 
   // Auto-translates the typed text into the selected language once a phrase
   // or sentence is finished (on . ! ? or newline), with a pause-based
-  // fallback once typing stops — so the AI gets enough context for a good
+  // fallback once typing stops, so the AI gets enough context for a good
   // translation instead of mistranslating single words in isolation.
   const handleBodyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -428,7 +428,7 @@ function WritePageInner() {
     setAiResult("");
     setAiOpen(true);
 
-    // For translate action on an existing story — check cache first.
+    // For translate action on an existing story, check cache first.
     // Target is Hindi when source is English, English otherwise.
     if (action === "translate" && editId) {
       const targetLang = language === "en" ? "hi" : "en";
@@ -445,7 +445,7 @@ function WritePageInner() {
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, content: body, title, language }),
+        body: JSON.stringify({ action, content: body, title, language, category }),
       });
       const json = await res.json();
       setAiResult(json.result ?? json.error ?? "Something went wrong.");
@@ -457,7 +457,7 @@ function WritePageInner() {
 
   const applyAiResult = () => {
     if (aiAction === "excerpt") {
-      // Just show it — user can copy
+      // Just show it, user can copy
     } else if (aiAction === "continue") {
       setBody(body.trimEnd() + "\n\n" + aiResult);
       onBodyResize();

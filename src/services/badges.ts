@@ -41,7 +41,7 @@ export async function fetchUserBadges(userId: string): Promise<WriterBadge[]> {
   return (data ?? []) as WriterBadge[];
 }
 
-/** Idempotent — safe to call on every dashboard load and after every publish. */
+/** Idempotent, safe to call on every dashboard load and after every publish. */
 export async function checkAndAwardBadges(userId: string): Promise<void> {
   if (!supabase) return;
   const { error } = await supabase.rpc("check_and_award_badges", { p_user_id: userId });

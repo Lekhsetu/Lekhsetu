@@ -90,7 +90,7 @@ function Card({ story, delay }: { story: Story; delay: number }) {
           <div className="absolute top-0 left-0 right-0 h-px"
             style={{ background: `linear-gradient(90deg,transparent,${cat?.color ?? "#F5A623"}55,transparent)` }} />
 
-          {/* Gloss overlay — follows cursor */}
+          {/* Gloss overlay: follows cursor */}
           <div className="card-gloss absolute inset-0 rounded-2xl pointer-events-none transition-opacity duration-200"
             style={{ opacity: 0 }} />
 

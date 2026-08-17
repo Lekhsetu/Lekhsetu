@@ -10,7 +10,7 @@ export type DetectedLocation = {
   languageCode: string | null;
 };
 
-/** Reader's preferred reading language — used to pick the matching translation of a story. */
+/** Reader's preferred reading language, used to pick the matching translation of a story. */
 export function getPreferredLanguage(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(LANG_KEY);

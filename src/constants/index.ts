@@ -1,9 +1,9 @@
-// Ordered so the most emotionally resonant, life-experience categories surface
-// first in the explore filter bar and write-page picker — these are what make
-// Lekhsetu feel like real human stories rather than a generic blog.
-// 10 core emotional categories — chosen for maximum Indian audience relatability.
-// IDs map to existing DB values so no migration is needed.
-// Old stories in deprecated category IDs still render via the LEGACY_CATEGORIES fallback below.
+// Every category a story can be written or filed under. The first 10 are the
+// emotionally resonant, life-experience categories the platform first launched
+// with; the rest reopen the wider topic range (knowledge, tech, art, fiction,
+// and more) so Lekhsetu covers anything someone genuinely wants to write,
+// not just personal-failure narratives. IDs map to existing DB values so no
+// migration is needed for stories already published under them.
 export const CATEGORIES = [
   { id: "firstjob",    label: "First Job",         emoji: "🧑‍💼", color: "#15803d" },
   { id: "failure",     label: "Failure & Comeback", emoji: "🔁", color: "#b91c1c" },
@@ -15,11 +15,6 @@ export const CATEGORIES = [
   { id: "mentalhealth",label: "Mental Health",      emoji: "🧠", color: "#7c3aed" },
   { id: "confessions", label: "Confessions",        emoji: "🤫", color: "#6d28d9" },
   { id: "life",        label: "Life Lessons",       emoji: "🌱", color: "#e8751a" },
-];
-
-// Fallback display data for stories written under the old 52-category system.
-// Only used in StoryCard/explore for rendering — not shown in the write picker.
-export const LEGACY_CATEGORIES: typeof CATEGORIES = [
   { id: "career",          label: "Career",             emoji: "💼", color: "#1a6b5e" },
   { id: "knowledge",       label: "Knowledge",          emoji: "📚", color: "#7a5c2e" },
   { id: "tech",            label: "Technology",         emoji: "⚡", color: "#2563eb" },
@@ -62,8 +57,12 @@ export const LEGACY_CATEGORIES: typeof CATEGORIES = [
   { id: "politics",        label: "Politics",           emoji: "🏛️", color: "#374151" },
 ];
 
+// Kept for backward compatibility with the CATEGORIES.find(...) ?? LEGACY_CATEGORIES.find(...)
+// lookup pattern used elsewhere. Everything it used to hold now lives in CATEGORIES above.
+export const LEGACY_CATEGORIES: typeof CATEGORIES = [];
+
 // Maps an Indian state/region name (as commonly returned by reverse-geocoding
-// services) to the language code readers there are most likely to prefer —
+// services) to the language code readers there are most likely to prefer,
 // used to auto-show the matching translation of a multi-language story.
 export const STATE_LANGUAGE_MAP: Record<string, string> = {
   "karnataka": "kn",

@@ -28,7 +28,7 @@ const SCRIPTS = [
   "story", "कहानी", "ಕಥೆ", "गोष्ट", "കഥ",
 ];
 
-// Round to 4dp — prevents floating-point divergence between Node.js (server)
+// Round to 4dp: prevents floating-point divergence between Node.js (server)
 // and browser V8 (client) when computing trig coordinates at module init time.
 // Without this, Math.cos/sin produce subtly different last-digit floats across
 // runtimes, causing React 19's hydration mismatch warning on SVG attributes.
@@ -170,7 +170,7 @@ export default function Hero() {
       freq: Math.random() * 0.006 + 0.003,
     }));
 
-    /* Ember particles — float upward like fire embers */
+    /* Ember particles, float upward like fire embers */
     const embers = Array.from({ length: 50 }, () => ({
       x:         Math.random() * window.innerWidth,
       y:         Math.random() * window.innerHeight,
@@ -303,7 +303,7 @@ export default function Hero() {
           style={{ background: "radial-gradient(circle,rgba(245,166,35,0.05) 0%,transparent 70%)" }} />
       </div>
 
-      {/* Floating script words — parallax + hover glow + random fade */}
+      {/* Floating script words: parallax + hover glow + random fade */}
       {FLOATERS.map((f, i) => (
         <div key={i}
           ref={el => { floaterRefs.current[i] = el; }}
@@ -347,11 +347,11 @@ export default function Hero() {
           style={{ border: "1px solid rgba(245,166,35,0.25)", background: "rgba(245,166,35,0.07)" }}>
           <Sparkles size={11} style={{ color: "#F5A623" }} />
           <span className="text-xs tracking-widest uppercase" style={{ color: "#F5A623" }}>
-            Your story belongs here
+            110 words. Completely real.
           </span>
         </div>
 
-        {/* Typewriter — "write" in every language */}
+        {/* Typewriter: "write" in every language */}
         <div className="anim-fade-up delay-200 flex items-center justify-center mb-5" style={{ minHeight: "4.5rem" }}>
           <span className="font-display font-black inline-flex items-center"
             style={{ fontSize: "clamp(2.4rem,5.5vw,4.4rem)", color: "#F5A623", letterSpacing: "-0.02em" }}>
@@ -398,8 +398,8 @@ export default function Hero() {
         </p>
         <p className="anim-fade-up delay-500 text-base max-w-xl mx-auto leading-relaxed mb-10"
           style={{ color: "#6B6354" }}>
-          Write it in Hindi, Kannada, Marathi, Malayalam whatever language you actually think in.
-          Someone out there is waiting to read exactly what you lived through.
+          Tell it in 110 words, in Hindi, Kannada, Marathi, Malayalam, or whatever language you think in.
+          Keep your name on it, or leave it off entirely. Someone out there needs exactly what you lived through.
         </p>
 
         {/* CTA buttons */}
@@ -436,7 +436,7 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Stats — count up on scroll into view */}
+        {/* Stats: count up on scroll into view */}
         <div className="anim-fade-up delay-700 flex items-center justify-center gap-8 sm:gap-16 flex-wrap">
           <StatCounter val={storyCount} label="Stories Published" />
           <StatCounter val="5" label="Languages" />

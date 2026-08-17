@@ -4,7 +4,7 @@ import { useState } from "react";
 
 export type BarPoint = { label: string; value: number };
 
-/** Lightweight interactive horizontal bar chart — no charting library needed. */
+/** Lightweight interactive horizontal bar chart, no charting library needed. */
 export default function BarChart({ data, color = "#F5A623" }: { data: BarPoint[]; color?: string }) {
   const [active, setActive] = useState<number | null>(null);
 

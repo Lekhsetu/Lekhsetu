@@ -18,7 +18,7 @@ export function useAutoResizeTextarea(value: string, breatheDelayMs = 3000) {
 
   const onChange = () => {
     // Resize is handled by useEffect([value]) after React commits the new
-    // value — calling it here too would fire twice per keystroke (once on
+    // value, calling it here too would fire twice per keystroke (once on
     // the stale value, once on the updated value), doubling the scroll flash.
     const wrapper = wrapperRef.current;
     if (wrapper) wrapper.classList.remove("editor-breathing");
